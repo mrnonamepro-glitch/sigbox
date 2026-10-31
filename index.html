@@ -144,6 +144,34 @@ label.btn{display:inline-flex;align-items:center;position:relative}
 .file input{position:absolute;opacity:0;width:1px;height:1px}
 .file:focus-within{outline:2px solid var(--tl);outline-offset:2px}
 #liststat{font-size:12.5px}
+#botfab{position:fixed;right:16px;bottom:16px;z-index:60;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:600 12.5px var(--f-mono);box-shadow:0 4px 18px rgba(0,0,0,.18);cursor:pointer;max-width:calc(100vw - 32px)}
+#botfab svg{flex:none}
+#botfab .botdot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+#botfab.run .botdot{background:var(--up);box-shadow:0 0 0 0 var(--up);animation:botpulse 2s infinite}
+#botfab.end .botdot{background:var(--down)}
+@keyframes botpulse{0%{box-shadow:0 0 0 0 rgba(47,196,174,.55)}70%{box-shadow:0 0 0 8px rgba(47,196,174,0)}100%{box-shadow:0 0 0 0 rgba(47,196,174,0)}}
+@media (prefers-reduced-motion:reduce){#botfab.run .botdot{animation:none}}
+#botlab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#botpanel{position:fixed;right:16px;bottom:72px;z-index:59;width:min(460px,calc(100vw - 32px));max-height:min(80vh,760px);overflow:auto;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 10px 40px rgba(0,0,0,.28)}
+#botpanel[hidden]{display:none}
+#botpanel h2{font:600 16px var(--f-display);margin:0}
+#botpanel h3{font:600 13px var(--f-display);margin:14px 0 6px}
+#botpanel summary{cursor:pointer;font:600 14px var(--f-display);margin:10px 0 6px}
+.bothead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.botswitch{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px}
+.botgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px 12px}
+#botpanel label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+#botpanel label.botswitch{flex-direction:row;color:var(--ink)}
+#botpanel input[type=number],#botpanel select,#botpanel textarea{font:13px var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--ink);width:100%;box-sizing:border-box}
+.botwide{margin-bottom:6px}
+.botrow{margin:6px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.botbar{position:relative;height:8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);margin-top:8px}
+.botbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--up)}
+.botbar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fib)}
+.botl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:6px 0;border-bottom:1px solid var(--grid);font-size:12.5px}
+.botl time{font:11.5px var(--f-mono);color:var(--muted);white-space:nowrap}
+.botl.k-open span{color:var(--up)}.botl.k-stop span,.botl.k-err span{color:var(--down)}.botl.k-skip span,.botl.k-expire span{color:var(--muted)}
+#botpanel .tblwrap{max-height:220px}
 #btout tr.best td{background:var(--panel2);font-weight:600}
 #btout details.xsec{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
 #btout details.xsec>summary{cursor:pointer;font:600 15px var(--f-display)}
@@ -340,6 +368,23 @@ label.btn{display:inline-flex;align-items:center;position:relative}
   </main>
   <div class="colR" id="colR"></div>
 </div>
+<button type="button" id="botfab" class="off" aria-label="Bot giao dịch demo" aria-expanded="false" aria-controls="botpanel">
+  <svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="var(--panel2)" stroke="var(--line)"/><line x1="20" y1="5" x2="20" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="4.5" r="2" fill="currentColor"/><rect x="9" y="11" width="22" height="17" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15.5" cy="19" r="2.4" fill="currentColor"/><circle cx="24.5" cy="19" r="2.4" fill="currentColor"/><path d="M15 24.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  <span id="botlab">BOT · chưa chạy</span><i class="botdot"></i>
+</button>
+<section id="botpanel" hidden role="dialog" aria-label="Bot giao dịch demo">
+  <div class="bothead"><h2>Bot giao dịch demo</h2><button type="button" class="btn" id="botclose">Đóng</button></div>
+  <label class="botswitch"><input type="checkbox" id="botOn"> <b>Bật bot</b> <span id="botstate" class="hint2"></span></label>
+  <div id="botstat"></div>
+  <details open><summary>Danh sách coin và mục tiêu</summary><div id="botform1"></div></details>
+  <details><summary>Quản lý rủi ro và bộ lọc</summary><div id="botform2"></div></details>
+  <h3>Lệnh đang mở</h3><div id="botpos"></div>
+  <h3>Lệnh chờ kích hoạt</h3><div id="botpend"></div>
+  <h3>Lệnh đã đóng gần nhất</h3><div id="botclosed"></div>
+  <h3>Nhật ký: bot làm gì và vì sao</h3><div id="botlog"></div>
+  <p class="disc">Vốn và lệnh chỉ là mô phỏng trên giá thật của Binance, không có tiền thật. Khớp lệnh khớp lệnh theo cách vào lệnh của Box Lab (giá hiện tại khi vừa có nến phá hộp, hoặc chờ hồi test biên hộp), tính phí và trượt giá bạn đặt, nhưng vẫn lạc quan hơn thực tế (không có hàng đợi, độ trễ, thanh khoản mỏng, funding). Bot chỉ theo dõi khi trang đang mở; khi mở lại nó tải các nến đã bỏ lỡ để cập nhật lệnh đang mở, nhưng không vào lệnh mới trong lúc vắng mặt. Mục tiêu lãi chỉ là đích theo dõi, bot không tăng rủi ro để chạy theo mục tiêu. Đây không phải khuyến nghị đầu tư.</p>
+  <p><button type="button" class="btn" id="botreset">Bắt đầu phiên mới (xóa phiên hiện tại)</button></p>
+</section>
 <div id="toasts" aria-live="assertive"></div>
 
 <script>
@@ -915,6 +960,81 @@ function fsPass(t,flt){
   if(flt.minScore>0&&t.sc!=null&&t.sc<flt.minScore)return 'score';
   return null;
 }
+function botDayKey(t){return Math.floor((t+25200000)/86400000)} /* ngày theo giờ Việt Nam (UTC+7) */
+function botFirstGE(a,t){var lo=0,hi=a.length;while(lo<hi){var m=(lo+hi)>>1;if(a[m].t<t)lo=m+1;else hi=m}return lo}
+function botEma(a,n){var k=2/(n+1),p=0,o=[],i;for(i=0;i<a.length;i++){p=i?a[i]*k+p*(1-k):a[0];o.push(p)}return o}
+/* Bối cảnh chung từ BTC: xu hướng H4 (1 tăng, -1 giảm, 0 chưa rõ) và tỷ lệ biến động H1 (ATR14 / ATR100). Dữ liệu đã đóng nến. */
+function botCtx(h4,h1){
+  var out={dir:0,volRatio:null},i;
+  if(h4&&h4.length>=60){
+    var c=h4.map(function(x){return x.c}),e20=botEma(c,20),e50=botEma(c,50),n=c.length-1;
+    var sep=Math.abs(e20[n]-e50[n])>=0.003*e50[n];
+    out.dir=!sep?0:(c[n]>e50[n]&&e20[n]>e50[n])?1:(c[n]<e50[n]&&e20[n]<e50[n])?-1:0;
+  }
+  if(h1&&h1.length>=120){
+    var tr=[];for(i=1;i<h1.length;i++){var b=h1[i],pc=h1[i-1].c;tr.push(Math.max(b.h-b.l,Math.abs(b.h-pc),Math.abs(b.l-pc)))}
+    var mean=function(a){var s=0;a.forEach(function(x){s+=x});return a.length?s/a.length:0},a14=mean(tr.slice(-14)),a100=mean(tr.slice(-100));
+    out.volRatio=a100>0?a14/a100:null;
+  }
+  return out;
+}
+/* Ngân sách rủi ro trong ngày: hạn mức = dailyLossPct% × balance đầu ngày, trừ lỗ đã chốt (lãi trong ngày không làm tăng hạn mức) và rủi ro của lệnh đang mở (lệnh đã dời về hoà vốn tính 0). */
+function botBudget(S,cfg){
+  var lim=cfg.dailyLossPct/100*S.dayStartBal,loss=Math.max(0,-S.realizedToday),open=0,openAll=0;
+  S.pos.forEach(function(p){openAll+=p.risk;open+=p.be?0:p.risk});
+  return {limit:lim,loss:loss,open:open,remain:Math.max(0,lim-loss-open),openAll:openAll};
+}
+/* o: {bal,cfg:{riskPct,maxLev,maxOpenPct},score,ctxMult,tgtMult,remainDay,openAll,entry,sl}. Rủi ro = riskPct × hệ số điểm × bối cảnh, bị giới hạn bởi ngân sách ngày, trần rủi ro mở và đòn bẩy. */
+function botSize(o){
+  var mult=o.score>=80?1:o.score>=70?0.75:0.5,want=o.bal*o.cfg.riskPct/100*mult*o.ctxMult*o.tgtMult;
+  var remainOpen=Math.max(0,o.cfg.maxOpenPct/100*o.bal-o.openAll),risk=Math.min(want,o.remainDay,remainOpen),dist=Math.abs(o.entry-o.sl);
+  var lim=risk<=0?(o.remainDay<=0?'budget':'open'):'';
+  if(!(dist>0)||!(risk>0))return {ok:false,want:want,mult:mult,why:lim||'invalid',remainOpen:remainOpen};
+  var qty=risk/dist,cap=o.bal*o.cfg.maxLev;
+  if(qty*o.entry>cap){qty=cap/o.entry;risk=qty*dist;lim='lev'}
+  else if(risk<want-1e-9)lim=risk<o.remainDay-1e-9?'open':'budget';
+  if(risk<Math.max(1,0.25*want))return {ok:false,want:want,mult:mult,why:'small',remainOpen:remainOpen};
+  return {ok:true,risk:risk,qty:qty,want:want,mult:mult,cut:lim,remainOpen:remainOpen};
+}
+function botPnl(p,px,feePct){return (px-p.entry)*p.side*p.qty-feePct/100*(p.entry+px)*p.qty}
+/* Lệnh chờ hồi test (retest): p {side,trig (biên hộp),tp,tc,te}. Trả về {bar,entry} khi nến M15 đầu tiên trong [tc,te) chạm biên hộp,
+   {missed:true} nếu giá đi tới TP1 trước khi hồi test, {expired:true} khi hết hạn, null nếu còn chờ. Nến chạm cả biên và TP1 thì tính là đã khớp. */
+function botTrig(p,rows,now){
+  var s=p.side,i;
+  for(i=botFirstGE(rows,p.tc);i<rows.length;i++){
+    var b=rows[i];if(b.t>=p.te||b.t>now)break;
+    if(s>0?b.l<=p.trig:b.h>=p.trig)return {bar:b,entry:s>0?Math.min(b.o,p.trig):Math.max(b.o,p.trig)};
+    if(p.tp!=null&&(s>0?b.h>=p.tp:b.l<=p.tp))return {missed:true,t:b.t};
+  }
+  return now>=p.te?{expired:true}:null;
+}
+/* Theo dõi một vị thế trên nến M15. p {side,entry,sl,tp,t0,checkT,mfe,mae,mkt}. Lệnh chờ khớp (retest): nến vào lệnh xét cắt lỗ trước, thoát đúng giá cắt lỗ/chốt lời.
+   Lệnh vào theo giá thị trường (mkt): nến vào lệnh chỉ so giá hiện tại (không dùng râu nến trước lúc vào). Nến sau: nhảy gap thì lấy giá mở. Cắt lỗ và thoát theo giờ chịu trượt giá slip (phần trăm dạng số thập phân). */
+function botEval(p,rows,now,holdMs,slip){
+  var s=p.side,dist=Math.abs(p.entry-p.sl),i;
+  for(i=botFirstGE(rows,p.checkT);i<rows.length;i++){
+    var b=rows[i];if(b.t>now)break;
+    var closed=b.t+900000<=now,eb=b.t===p.t0,hl=!(p.mkt&&eb);
+    var lo=hl?b.l:b.c,hi=hl?b.h:b.c;
+    var hitSl=s>0?lo<=p.sl:hi>=p.sl,hitTp=p.tp!=null&&(s>0?hi>=p.tp:lo<=p.tp);
+    var fav=((s>0?hi-p.entry:p.entry-lo)/dist),adv=((s>0?p.entry-lo:hi-p.entry)/dist);
+    if(fav>p.mfe)p.mfe=fav;if(adv>p.mae)p.mae=adv;
+    if(hitSl){
+      var px=eb?(p.mkt?b.c:p.sl):(s>0?Math.min(p.sl,b.o):Math.max(p.sl,b.o));
+      return {px:px*(1-s*slip),reason:'sl',t:b.t};
+    }
+    if(hitTp){
+      var pt=eb?(p.mkt?p.tp:p.tp):(s>0?Math.max(p.tp,b.o):Math.min(p.tp,b.o));
+      return {px:pt,reason:'tp',t:b.t};
+    }
+    if(closed){
+      p.checkT=b.t+900000;
+      if(b.t+900000>=p.t0+holdMs)return {px:b.c*(1-s*slip),reason:'time',t:b.t};
+    }
+  }
+  return null;
+}
+
 //#LOGIC-END
 
 /* ================= UI ================= */
@@ -2541,6 +2661,303 @@ $('#entrycard').addEventListener('change',function(e){
   place();
   if(mq.addEventListener)mq.addEventListener('change',place);else if(mq.addListener)mq.addListener(place);
 })();
+
+/* ---------- bot giao dịch demo (vốn ảo, giá thật từ Binance) ---------- */
+var BOTK='boxlab.bot.v1';
+var BOT_DEF={coins:'',bal0:1000,tgtPct:10,days:7,onTarget:'stop',riskPct:1,dailyLossPct:2,maxOpenPct:4,maxPos:5,maxSide:3,corrTh:0.8,corrMax:2,ddStop:10,minScore:60,minRR:1.5,maxStopPct:6,maxLev:10,fee:0.05,slip:0.03,holdH:72,tf:'1h',scanMin:5,useFs:1};
+var BOT_F1=[['bal0','Vốn demo ($)',10,1000000,10,'Áp dụng khi bắt đầu phiên mới'],['tgtPct','Mục tiêu (% balance)',0.5,500,0.5,'Mục tiêu là đích để theo dõi tiến độ, bot không nới rủi ro để chạy theo mục tiêu'],['days','Trong số ngày',1,365,1,'Hết số ngày bot ngừng mở lệnh mới']];
+var BOT_F2=[['riskPct','Rủi ro tối đa mỗi lệnh (%)',0.1,5,0.1,'Setup điểm cao nhận đủ mức này, điểm thấp hơn nhận 50–75%'],['dailyLossPct','Lỗ tối đa mỗi ngày (%)',0.5,20,0.5,'Tính cả lỗ đã chốt và rủi ro các lệnh đang mở. Hết ngân sách bot không vào lệnh mới đến 0h giờ Việt Nam'],['maxOpenPct','Trần tổng rủi ro đang mở (%)',0.5,30,0.5,''],['maxPos','Tối đa số lệnh cùng lúc',1,30,1,''],['maxSide','Tối đa lệnh cùng chiều',1,30,1,''],['corrTh','Coi là tương quan khi ρ ≥',0.3,0.99,0.05,''],['corrMax','Tối đa lệnh cùng chiều tương quan',1,10,1,''],['ddStop','Tự dừng khi sụt vốn (%)',1,80,1,'Tính từ đỉnh equity'],['minScore','Điểm setup tối thiểu',0,100,5,''],['minRR','R:R tối thiểu tới TP1',0.5,5,0.1,''],['maxStopPct','Khoảng cắt lỗ tối đa (% giá)',0.5,30,0.5,''],['maxLev','Đòn bẩy tối đa (x)',1,125,1,'Khối lượng vị thế không vượt balance × đòn bẩy'],['fee','Phí mỗi chiều (%)',0,0.5,0.01,''],['slip','Trượt giá khi cắt lỗ/thoát (%)',0,1,0.01,'Làm demo sát thực tế hơn'],['holdH','Giữ lệnh tối đa (giờ)',1,240,1,''],['scanMin','Quét danh sách mỗi (phút)',1,60,1,'']];
+var BOT={on:false,busy:false,cfg:Object.assign({},BOT_DEF),S:null,corr:null,rets:{}};
+try{var _b=JSON.parse(localStorage.getItem(BOTK)||'null');if(_b){BOT.on=!!_b.on;if(_b.cfg)Object.keys(BOT_DEF).forEach(function(k){if(_b.cfg[k]!==undefined&&typeof _b.cfg[k]===typeof BOT_DEF[k])BOT.cfg[k]=_b.cfg[k]});BOT.S=_b.S||null}}catch(e){}
+function botSave(){try{localStorage.setItem(BOTK,JSON.stringify({on:BOT.on,cfg:BOT.cfg,S:BOT.S}))}catch(e){}}
+function botT(t){var d=new Date(t);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())}
+function botLog(k,m,t){var S=BOT.S;if(!S)return;S.log.unshift({t:t||Date.now(),k:k,m:m});if(S.log.length>400)S.log.length=400}
+function botCoins(){
+  var seen={},out=[];
+  parseCoinText(BOT.cfg.coins).tokens.forEach(function(t){var n=normSymbol(t);if(!n)return;var k=n.sym+(n.fut?'.P':'');if(!seen[k]){seen[k]=1;out.push(n)}});
+  return out.slice(0,40);
+}
+function botEquity(){var S=BOT.S,e=S.bal;S.pos.forEach(function(p){if(p.last!=null)e+=(p.last-p.entry)*p.side*p.qty});return e}
+function botNewSession(){
+  var c=BOT.cfg,now=Date.now();
+  BOT.S={startT:now,bal0:c.bal0,bal:c.bal0,peak:c.bal0,dayKey:botDayKey(now),dayStartBal:c.bal0,realizedToday:0,pend:[],pos:[],closed:[],log:[],seen:{},lastScan:0,end:'',tgtHit:false,tgtHalf:false,nid:1};
+  BOT.corr=null;
+  botLog('start','Bắt đầu phiên demo: vốn '+usd(c.bal0)+', mục tiêu +'+c.tgtPct+'% trong '+c.days+' ngày, '+botCoins().length+' coin trong danh sách. Rủi ro tối đa '+c.riskPct+'% mỗi lệnh, lỗ tối đa '+c.dailyLossPct+'% mỗi ngày, trần rủi ro mở '+c.maxOpenPct+'%, tự dừng khi sụt vốn '+c.ddStop+'%.',now);
+}
+function botRoll(now){
+  var S=BOT.S,dk=botDayKey(now);
+  if(dk!==S.dayKey){
+    S.dayKey=dk;S.dayStartBal=S.bal;S.realizedToday=0;
+    botLog('day','Ngày mới (0h giờ Việt Nam): ngân sách lỗ trong ngày được đặt lại, tối đa '+usd(BOT.cfg.dailyLossPct/100*S.bal)+' ('+BOT.cfg.dailyLossPct+'% của '+usd(S.bal)+').',now);
+  }
+}
+function botClose(p,e){
+  var S=BOT.S,c=BOT.cfg,pnl=botPnl(p,e.px,c.fee),R=p.risk>0?pnl/p.risk:0;
+  S.bal+=pnl;
+  if(botDayKey(e.t)===S.dayKey)S.realizedToday+=pnl;
+  S.pos=S.pos.filter(function(x){return x.id!==p.id});
+  var eq=botEquity();if(eq>S.peak)S.peak=eq;
+  S.closed.unshift({id:p.id,label:p.label,side:p.side,entry:p.entry,exitPx:e.px,sl:p.sl,tp:p.tp,risk:p.risk,pnl:pnl,R:R,reason:e.reason,t0:p.t0,exitT:e.t,score:p.score,mfe:p.mfe,mae:p.mae});
+  if(S.closed.length>300)S.closed.length=300;
+  var why={tp:'chạm chốt lời TP1',sl:'chạm cắt lỗ',time:'hết thời gian giữ lệnh'}[e.reason],hrs=((e.t+900000-p.t0)/3600000).toFixed(1),notes=[];
+  notes.push('giá đã đi tối đa '+p.mfe.toFixed(1)+'R có lợi và '+p.mae.toFixed(1)+'R bất lợi');
+  if(e.reason==='sl'&&p.mfe>=0.8)notes.push('lệnh từng chạy +'+p.mfe.toFixed(1)+'R rồi mới quay lại cắt lỗ');
+  if(e.reason==='sl'&&(e.t+900000-p.t0)<=1800000)notes.push('bị cắt lỗ trong vòng 2 nến M15 đầu tiên');
+  botLog('close','Đóng '+(p.side>0?'LONG':'SHORT')+' '+p.label+' ở '+fmt(e.px)+': '+why+', '+rtxt(R)+' ('+usd(pnl,true)+'), giữ '+hrs+' giờ; '+notes.join('; ')+'. Balance '+usd(S.bal)+'.',e.t);
+}
+/* Kiểm tra các giới hạn rồi mở vị thế. Trả về true nếu đã mở. */
+function botOpen(p,bar,entryRaw,now){
+  var S=BOT.S,c=BOT.cfg,s=p.side,lab=(s>0?'LONG ':'SHORT ')+p.label;
+  var skip=function(m){botLog('skip','Bỏ '+lab+': '+m,bar.t);return false};
+  if(S.end)return skip('bot đã ngừng mở lệnh mới.');
+  var entry=p.mode==='retest'?entryRaw:entryRaw*(1+s*c.slip/100);
+  if(!((entry-p.sl)*s>0&&(p.tp-entry)*s>0))return skip('giá vào '+fmt(entry)+' không còn hợp lệ so với cắt lỗ '+fmt(p.sl)+' và TP1 '+fmt(p.tp)+'.');
+  var rr=(p.tp-entry)*s/Math.abs(entry-p.sl);
+  if(rr<c.minRR)return skip('R:R sau khi vào chỉ còn '+rr.toFixed(2)+' (< '+c.minRR+').');
+  if(S.pos.length>=c.maxPos)return skip('đã có '+S.pos.length+' lệnh đang mở (tối đa '+c.maxPos+').');
+  var same=S.pos.filter(function(q){return q.side===s});
+  if(same.length>=c.maxSide)return skip('đã có '+same.length+' lệnh '+(s>0?'LONG':'SHORT')+' đang mở (tối đa '+c.maxSide+').');
+  if(BOT.corr){
+    var cor=same.filter(function(q){var r=BOT.corr.c[p.label]&&BOT.corr.c[p.label][q.label];return r!==undefined&&r>=c.corrTh});
+    if(cor.length>=c.corrMax)return skip('tương quan cao (ρ ≥ '+c.corrTh+') với '+cor.map(function(q){return q.label+' '+BOT.corr.c[p.label][q.label].toFixed(2)}).join(', ')+', coi như cùng một cược.');
+  }
+  var bg=botBudget(S,{dailyLossPct:c.dailyLossPct});
+  var z=botSize({bal:S.bal,cfg:c,score:p.score,ctxMult:p.ctxMult,tgtMult:S.tgtHalf?0.5:1,remainDay:bg.remain,openAll:bg.openAll,entry:entry,sl:p.sl});
+  if(!z.ok){
+    var why={budget:'hết ngân sách lỗ trong ngày (hạn mức '+usd(bg.limit)+', đã lỗ '+usd(bg.loss)+', đang rủi ro '+usd(bg.open)+')',open:'đã chạm trần tổng rủi ro đang mở '+c.maxOpenPct+'%',small:'phần rủi ro còn được phép quá nhỏ (dưới 25% mức mong muốn '+usd(z.want)+')',invalid:'khoảng cắt lỗ không hợp lệ'}[z.why]||'không tính được khối lượng';
+    return skip(why+'.');
+  }
+  var pos={id:p.id,label:p.label,sym:p.sym,fut:p.fut,side:s,entry:entry,sl:p.sl,tp:p.tp,qty:z.qty,risk:z.risk,t0:bar.t,checkT:bar.t,mfe:0,mae:0,mkt:p.mode!=='retest',score:p.score,last:entry,be:false};
+  S.pos.push(pos);
+  var cut={budget:'bị cắt còn '+usd(z.risk)+' vì ngân sách lỗ trong ngày chỉ còn '+usd(bg.remain),open:'bị cắt còn '+usd(z.risk)+' vì trần tổng rủi ro mở',lev:'bị giới hạn bởi đòn bẩy tối đa '+c.maxLev+'x'}[z.cut];
+  botLog('open','Vào '+lab+' ở '+fmt(entry)+(Math.abs(entry-entryRaw)>0?' (đã gồm trượt giá '+c.slip+'%)':'')+': '+p.how+'. Điểm '+p.score+'/100 ('+p.why+'). Cắt lỗ '+fmt(p.sl)+', TP1 '+fmt(p.tp)+', R:R '+rr.toFixed(2)+'. Rủi ro '+usd(z.risk)+' = '+c.riskPct+'% × hệ số điểm '+z.mult+' × bối cảnh '+p.ctxMult+(S.tgtHalf?' × 0.5 (đã đạt mục tiêu)':'')+(cut?', '+cut:'')+'. Khối lượng '+z.qty.toPrecision(4)+', ngân sách ngày còn '+usd(Math.max(0,bg.remain-z.risk))+'.',bar.t);
+  return true;
+}
+async function botFetchM15(label,sym,fut,minT,now){
+  var lim=Math.min(1000,Math.max(8,Math.ceil((now-minT)/900000)+4));
+  return await retry(function(){return klines(sym,'15m',fut,lim)});
+}
+async function botMonitor(now){
+  var S=BOT.S,c=BOT.cfg,by={};
+  S.pend.forEach(function(p){(by[p.label]=by[p.label]||{sym:p.sym,fut:p.fut,pend:[],pos:[],minT:Infinity});by[p.label].pend.push(p);by[p.label].minT=Math.min(by[p.label].minT,p.tc)});
+  S.pos.forEach(function(p){(by[p.label]=by[p.label]||{sym:p.sym,fut:p.fut,pend:[],pos:[],minT:Infinity});by[p.label].pos.push(p);by[p.label].minT=Math.min(by[p.label].minT,p.checkT)});
+  var keys=Object.keys(by),idx=0;
+  async function w(){
+    while(idx<keys.length){
+      var k=keys[idx++],g=by[k],rows=null;
+      try{rows=await botFetchM15(k,g.sym,g.fut,g.minT,now)}catch(e){continue}
+      if(!rows||!rows.length)continue;
+      g.pend.forEach(function(p){
+        var r=botTrig(p,rows,now);
+        if(!r)return;
+        S.pend=S.pend.filter(function(x){return x.id!==p.id});
+        if(r.missed){botLog('expire','Bỏ lệnh chờ '+(p.side>0?'LONG ':'SHORT ')+p.label+': giá đã đi tới TP1 ('+fmt(p.tp)+') mà chưa hồi test biên hộp '+fmt(p.trig)+'.',r.t);return}
+        if(r.expired){botLog('expire','Hết hạn '+(p.side>0?'LONG ':'SHORT ')+p.label+': giá không hồi test biên hộp '+fmt(p.trig)+' trong thời gian chờ, bỏ setup.',p.te);return}
+        botOpen(p,r.bar,r.entry,now);
+      });
+      S.pos.filter(function(p){return p.label===k}).forEach(function(p){
+        var e=botEval(p,rows,now,c.holdH*3600000,c.slip/100);
+        p.last=rows[rows.length-1].c;
+        if(e)botClose(p,e);
+      });
+    }
+  }
+  await Promise.all([w(),w(),w()]);
+}
+function botCheckStop(now){
+  var S=BOT.S,c=BOT.cfg,eq=botEquity();
+  if(eq>S.peak)S.peak=eq;
+  var end=function(why,msg){S.end=why;S.pend.length&&botLog('expire','Hủy '+S.pend.length+' lệnh chờ kích hoạt.',now);S.pend=[];botLog('stop',msg,now)};
+  if(!S.end&&eq<=S.peak*(1-c.ddStop/100))end('dd','Dừng mở lệnh mới: equity '+usd(eq)+' đã sụt '+((1-eq/S.peak)*100).toFixed(1)+'% từ đỉnh '+usd(S.peak)+' (giới hạn '+c.ddStop+'%). Các lệnh đang mở vẫn được theo dõi đến khi đóng.');
+  if(!S.tgtHit&&eq>=S.bal0*(1+c.tgtPct/100)){
+    S.tgtHit=true;
+    if(c.onTarget==='stop'&&!S.end)end('target','Đã đạt mục tiêu +'+c.tgtPct+'% (equity '+usd(eq)+'). Bot ngừng mở lệnh mới để giữ lãi.');
+    else if(c.onTarget==='half'){S.tgtHalf=true;botLog('stop','Đã đạt mục tiêu +'+c.tgtPct+'%. Bot tiếp tục nhưng giảm một nửa rủi ro mỗi lệnh.',now)}
+    else botLog('stop','Đã đạt mục tiêu +'+c.tgtPct+'%. Bot tiếp tục như bình thường.',now);
+  }
+  if(!S.end&&now>=S.startT+c.days*86400000)end('deadline','Hết '+c.days+' ngày: kết quả '+usd(eq)+' ('+((eq/S.bal0-1)*100).toFixed(2)+'% so với vốn đầu, mục tiêu +'+c.tgtPct+'%). Bot ngừng mở lệnh mới.');
+  if(S.end&&!S.pos.length&&!S.pend.length&&BOT.on){BOT.on=false;botLog('stop','Phiên đã kết thúc, bot tạm dừng. Bật lại để bắt đầu phiên mới.',now)}
+}
+async function botScan(now){
+  var S=BOT.S,c=BOT.cfg,list=botCoins(),TF=c.tf,ms=TFMS[TF];
+  S.lastScan=now;
+  if(!list.length){botLog('scan','Danh sách coin của bot đang trống, hãy nhập danh sách ở mục "Danh sách coin và mục tiêu".',now);return}
+  var ctx={dir:0,volRatio:null,ok:false};
+  try{var b4=await retry(function(){return klines('BTCUSDT','4h',true,200)}),b1=await retry(function(){return klines('BTCUSDT','1h',true,200)});ctx=botCtx(b4.slice(0,-1),b1.slice(0,-1));ctx.ok=true}catch(e){}
+  var cands=[],idx=0,errs=0,nsig=0,nExp=0,nLate=0,rets={},retest=P.entry==='retest',F=retest?P.retestWin+1:1,b24=Math.max(1,Math.round(86400000/ms));
+  async function w(){
+    while(idx<list.length){
+      var n=list[idx++],D=null;
+      try{var f=await resolveSym(n.sym,n.fut,TF);D={sym:f.symbol,label:labelOf(f.symbol,n.fut),fut:n.fut,rows:f.rows}}catch(e){errs++;continue}
+      rets[D.label]=pfRet(D.rows);
+      if(S.pend.some(function(p){return p.label===D.label})||S.pos.some(function(p){return p.label===D.label}))continue;
+      var r=statusOf(D.rows,P,F);
+      if(!(r.status==='setup'||r.status==='wait')||!r.setup)continue;
+      var sp=r.setup,s=sp.side,key=D.label+'|'+TF+'|'+sp.t;
+      if(S.seen[key])continue;
+      S.seen[key]=now;nsig++;
+      var lab=(s>0?'LONG ':'SHORT ')+D.label,skip=function(m){botLog('skip','Bỏ '+lab+' (nến phá hộp '+TFN[TF]+' lúc '+botT(sp.t)+'): '+m,now)};
+      var price=D.rows[D.rows.length-1].c,sl=sp.sl,tp=sp.tp1,entry,tc=0,te=0,how;
+      if(retest){
+        if(r.status!=='wait'){nLate++;continue}
+        tc=sp.t+ms;te=sp.t+ms*(1+P.retestWin);
+        if(now>=te){nExp++;continue}
+        entry=sp.edge;how='giá hồi test biên hộp '+fmt(sp.edge)+' (lệnh chờ trong '+P.retestWin+' nến '+TFN[TF]+')';
+      }else{
+        if(r.ago!==0){nLate++;continue}
+        entry=price;how='vào ngay theo giá hiện tại '+fmt(price)+' sau nến '+TFN[TF]+' phá '+(s>0?'đỉnh':'đáy')+' hộp '+(s>0?fmt(sp.box.T):fmt(sp.box.B));
+      }
+      if(!((entry-sl)*s>0&&(tp-entry)*s>0)){skip('cắt lỗ/TP1 không hợp lệ tại giá vào '+fmt(entry)+'.');continue}
+      var rr=(tp-entry)*s/Math.abs(entry-sl),stopPct=Math.abs(entry-sl)/entry*100;
+      cands.push({D:D,r:r,sp:sp,s:s,lab:lab,mode:retest?'retest':'close',tc:tc,te:te,entry:entry,sl:sl,tp:tp,rr:rr,stopPct:stopPct,how:how,price:price,skip:skip});
+    }
+  }
+  await Promise.all([w(),w(),w()]);
+  BOT.rets=rets;
+  var rr0={};Object.keys(rets).forEach(function(k){if(rets[k])rr0[k]=rets[k]});
+  BOT.corr=pfCorr(rr0,40);
+  var fm={};
+  if(c.useFs&&cands.some(function(x){return x.D.fut})){try{(await lpFetch(['https://fapi.binance.com/fapi/v1/premiumIndex'])).forEach(function(q){fm[q.symbol]=+q.lastFundingRate*100})}catch(e){}}
+  for(var i=0;i<cands.length;i++){
+    var x=cands[i],f=null,o24=null,px24=null,cl=x.D.rows.slice(0,-1);
+    if(cl.length>b24+2)px24=(cl[cl.length-1].c/cl[cl.length-1-b24].c-1)*100;
+    if(c.useFs&&x.D.fut){
+      if(fm[x.D.sym]!==undefined)f=fm[x.D.sym];
+      try{var oi=(await retry(function(){return lpFetch(['https://fapi.binance.com/futures/data/openInterestHist?symbol='+x.D.sym+'&period=1h&limit=30'])})).map(function(q){return {t:+q.timestamp,v:+q.sumOpenInterestValue}});if(oi.length){var last=oi[oi.length-1];o24=fsFeat(f,last.v,fsAt(oi,last.t-86400000,2*3600000)).oi24}}catch(e){}
+    }
+    x.sc=plScoreBox({touches:x.sp.box.tops+x.sp.box.bots,rr:x.rr,trendOk:x.sp.trend===x.s,hH:x.sp.box.H/x.sp.atr,side:x.s,fund:f,oi24:o24,px24:px24});
+  }
+  cands.sort(function(a,b){return b.sc.score-a.sc.score});
+  var made=0,opened=0;
+  cands.forEach(function(x){
+    var sc=x.sc;
+    if(sc.score<c.minScore){x.skip('điểm '+sc.score+' thấp hơn mức tối thiểu '+c.minScore+' ('+sc.parts.map(function(q){return q.k+' '+q.pts+'/'+q.max}).join(', ')+').');return}
+    if(x.rr<c.minRR){x.skip('R:R tới TP1 chỉ '+x.rr.toFixed(2)+' (< '+c.minRR+').');return}
+    if(x.stopPct>c.maxStopPct){x.skip('cắt lỗ cách giá '+x.stopPct.toFixed(1)+'% (> '+c.maxStopPct+'%), quá xa.');return}
+    if(ctx.ok&&ctx.volRatio!=null&&ctx.volRatio>3){x.skip('thị trường quá hỗn loạn (biến động H1 của BTC gấp '+ctx.volRatio.toFixed(1)+' lần bình thường).');return}
+    if(S.pend.length>=c.maxPos+3){x.skip('hàng chờ đã đầy.');return}
+    var cm=1,cn=[],isBtc=/^BTC/.test(x.D.sym);
+    if(ctx.ok&&!isBtc&&ctx.dir!==0&&ctx.dir!==x.s){cm*=0.5;cn.push('BTC đang '+(ctx.dir>0?'tăng':'giảm')+' ngược hướng lệnh nên giảm một nửa rủi ro')}
+    else if(ctx.ok)cn.push(ctx.dir===0?'BTC chưa rõ xu hướng':'BTC '+(ctx.dir>0?'tăng':'giảm')+' cùng hướng');
+    if(ctx.ok&&ctx.volRatio!=null&&ctx.volRatio>2){cm*=0.5;cn.push('biến động BTC cao gấp '+ctx.volRatio.toFixed(1)+' lần bình thường nên giảm một nửa rủi ro')}
+    var why=sc.parts.map(function(q){return q.k+' '+q.pts+'/'+q.max+' ('+q.note+')'}).join('; ');
+    var p={id:S.nid++,label:x.D.label,sym:x.D.sym,fut:x.D.fut,side:x.s,trig:x.entry,tc:x.tc,te:x.te,sl:x.sl,tp:x.tp,score:sc.score,why:why,ctxMult:cm,tfn:TFN[TF],how:x.how,mode:x.mode,created:now};
+    if(x.mode==='retest'){
+      S.pend.push(p);made++;
+      botLog('pend','Chờ hồi test '+x.lab+': nến phá hộp '+TFN[TF]+' lúc '+botT(x.sp.t)+', sẽ vào nếu giá về biên hộp '+fmt(x.entry)+' trước '+botT(x.te)+'. Điểm '+sc.score+'/100. R:R '+x.rr.toFixed(2)+'. '+cn.join('; ')+'.',now);
+    }else{
+      botLog('pend','Chấp nhận '+x.lab+': nến '+TFN[TF]+' vừa phá '+(x.s>0?'đỉnh':'đáy')+' hộp. Điểm '+sc.score+'/100. R:R '+x.rr.toFixed(2)+'. '+cn.join('; ')+'.',now);
+      if(botOpen(p,{t:Math.floor(now/900000)*900000},x.entry,now))opened++;
+    }
+  });
+  var cut=now-3*86400000;Object.keys(S.seen).forEach(function(k){if(S.seen[k]<cut)delete S.seen[k]});
+  botLog('scan','Quét '+list.length+' coin khung '+TFN[TF]+' (vào lệnh: '+(retest?'chờ hồi test':'ngay sau nến phá hộp')+')'+(errs?' ('+errs+' lỗi tải dữ liệu)':'')+': '+nsig+' setup mới'+(nExp||nLate?' ('+(nExp?nExp+' đã quá hạn chờ':'')+(nExp&&nLate?', ':'')+(nLate?nLate+' đã qua điểm vào nên không đuổi giá':'')+')':'')+', '+made+' vào hàng chờ, '+opened+' vào lệnh ngay'+(ctx.ok?'. BTC '+(ctx.dir>0?'tăng':ctx.dir<0?'giảm':'chưa rõ xu hướng')+', biến động '+(ctx.volRatio!=null?ctx.volRatio.toFixed(1)+'x bình thường':'chưa rõ'):'. Không lấy được dữ liệu BTC, bỏ qua bối cảnh')+'.',now);
+}
+async function botTick(){
+  if(!BOT.on||BOT.busy||!BOT.S)return;
+  BOT.busy=true;
+  try{
+    var S=BOT.S,now=Date.now();
+    botRoll(now);
+    await botMonitor(now);
+    botCheckStop(now);
+    if(BOT.on&&!S.end&&now-S.lastScan>=BOT.cfg.scanMin*60000)await botScan(now);
+  }catch(e){if(BOT.S)botLog('err','Lỗi bot: '+(e&&e.message?e.message:e),Date.now())}
+  finally{BOT.busy=false;botSave();botRender()}
+}
+/* ---- giao diện ---- */
+var botTimer=null;
+function botBuildForm(){
+  var fld=function(f){return '<label title="'+esc(f[5])+'"><span>'+esc(f[1])+'</span><input type="number" data-bot="'+f[0]+'" min="'+f[2]+'" max="'+f[3]+'" step="'+f[4]+'" value="'+BOT.cfg[f[0]]+'"></label>'};
+  $('#botform1').innerHTML='<label class="botwide"><span>Danh sách coin bot được phép giao dịch (chỉ trong danh sách này; độc lập với danh sách quét của bạn)</span><textarea id="bot-coins" rows="4" spellcheck="false" placeholder="BTCUSDT.P, ETHUSDT.P, SOLUSDT.P"></textarea></label>'+
+    '<p class="botrow"><button type="button" class="btn" id="bot-file">Nạp từ file .txt</button><input type="file" id="bot-filein" accept=".txt,text/plain" hidden> <button type="button" class="btn" id="bot-fromscan">Lấy từ danh sách quét gần nhất</button> <span id="bot-coinstat" class="hint2"></span></p>'+
+    '<div class="botgrid">'+BOT_F1.map(fld).join('')+'<label><span>Khung quét hộp</span><select data-bot="tf"><option value="15m">M15</option><option value="1h">H1</option><option value="4h">H4</option></select></label><label><span>Khi đạt mục tiêu</span><select data-bot="onTarget"><option value="stop">Ngừng mở lệnh mới</option><option value="half">Giảm một nửa rủi ro</option><option value="go">Tiếp tục bình thường</option></select></label></div>';
+  $('#botform2').innerHTML='<div class="botgrid">'+BOT_F2.map(fld).join('')+'<label><span>Funding và OI trong điểm</span><select data-bot="useFs"><option value="1">Có (coin .P)</option><option value="0">Không</option></select></label></div>';
+  $('#bot-coins').value=BOT.cfg.coins;
+  document.querySelectorAll('select[data-bot]').forEach(function(s){s.value=String(BOT.cfg[s.getAttribute('data-bot')])});
+}
+function botCoinStat(){var n=botCoins().length,r=parseCoinText(BOT.cfg.coins);$('#bot-coinstat').textContent=n+' coin hợp lệ'+(r.bad?', '+r.bad+' mã sai':'')+(r.tokens.length>40?' (chỉ dùng 40 mã đầu)':'')}
+function botRender(){
+  var S=BOT.S,fab=$('#botfab'),lab=$('#botlab');
+  $('#botOn').checked=BOT.on;
+  var st=!S?'Chưa chạy':BOT.on?(S.end?'Đang thu xếp lệnh cuối':'Đang chạy'):S.end?'Đã kết thúc':'Tạm dừng';
+  fab.className=(BOT.on&&S&&!S.end?'run':S&&S.end?'end':'off');
+  $('#botstate').textContent=st;
+  if(!S){lab.textContent='BOT · chưa chạy';$('#botstat').innerHTML='<p class="hint2">Nhập danh sách coin, vốn và mục tiêu, rồi tick "Bật bot". Bot dùng giá thật của Binance nhưng vốn và lệnh chỉ là demo.</p>';['#botpos','#botpend','#botclosed','#botlog'].forEach(function(q){$(q).innerHTML=''});return}
+  var now=Date.now(),eq=botEquity(),pl=eq/S.bal0-1,tg=BOT.cfg.tgtPct/100,el=(now-S.startT)/86400000,pace=tg*Math.min(1,el/BOT.cfg.days);
+  lab.textContent='BOT · '+usd(eq)+' · '+(pl>=0?'+':'')+(pl*100).toFixed(2)+'%';
+  var bg=botBudget(S,{dailyLossPct:BOT.cfg.dailyLossPct}),dd=S.peak>0?1-eq/S.peak:0;
+  var cell=function(k,v,sm){return '<div class="stat"><span class="sk">'+k+'</span><span class="sv">'+v+(sm?'<small style="display:block;font-weight:400;color:var(--muted);font-size:11px">'+sm+'</small>':'')+'</span></div>'};
+  var h='<div class="btstats">'+
+    cell('Equity','<span class="'+rcls(pl)+'">'+usd(eq)+'</span>','vốn đầu '+usd(S.bal0)+' · đã chốt '+usd(S.bal))+
+    cell('Lãi/lỗ',(pl>=0?'+':'')+(pl*100).toFixed(2)+'%','mục tiêu +'+BOT.cfg.tgtPct+'% · mốc theo thời gian +'+(pace*100).toFixed(2)+'%')+
+    cell('Ngày','Ngày '+Math.min(BOT.cfg.days,Math.floor(el)+1)+'/'+BOT.cfg.days,'bắt đầu '+botT(S.startT))+
+    cell('Ngân sách lỗ hôm nay',usd(bg.remain)+' còn lại','hạn mức '+usd(bg.limit)+' · đã lỗ '+usd(bg.loss)+' · đang rủi ro '+usd(bg.open))+
+    cell('Rủi ro đang mở',usd(bg.openAll),(bg.openAll/S.bal*100).toFixed(1)+'% balance, trần '+BOT.cfg.maxOpenPct+'%')+
+    cell('Sụt vốn từ đỉnh',dd>0.0005?'<span class="down">-'+(dd*100).toFixed(1)+'%</span>':'0%','tự dừng ở -'+BOT.cfg.ddStop+'%')+'</div>';
+  var prog=tg>0?Math.max(0,Math.min(1,pl/tg)):0;
+  h+='<div class="botbar" role="img" aria-label="Tiến độ mục tiêu"><i style="width:'+(prog*100).toFixed(1)+'%"></i><b style="left:'+(Math.min(1,pace/tg)*100).toFixed(1)+'%"></b></div>';
+  if(S.end)h+='<p class="note" style="margin-top:8px">'+esc({dd:'Bot dừng mở lệnh mới vì chạm giới hạn sụt vốn.',target:'Bot dừng mở lệnh mới vì đã đạt mục tiêu.',deadline:'Đã hết số ngày của phiên.'}[S.end])+' Xem nhật ký bên dưới.</p>';
+  else if(bg.remain<=0)h+='<p class="note" style="margin-top:8px">Đã hết ngân sách lỗ trong ngày, bot không vào lệnh mới đến 0h giờ Việt Nam.</p>';
+  $('#botstat').innerHTML=h;
+  var tb=function(head,rows,empty){return rows.length?'<div class="tblwrap"><table class="sbttbl"><thead><tr>'+head.map(function(x){return '<th>'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>':'<p class="hint2">'+empty+'</p>'};
+  $('#botpos').innerHTML=tb(['Coin','Hướng','Vào','Cắt lỗ','TP1','Rủi ro','Đang','Điểm'],S.pos.map(function(p){var u=(p.last-p.entry)*p.side/Math.abs(p.entry-p.sl);return '<tr><td>'+esc(p.label)+'</td><td>'+(p.side>0?'LONG':'SHORT')+'</td><td class="num">'+fmt(p.entry)+'</td><td class="num">'+fmt(p.sl)+'</td><td class="num">'+fmt(p.tp)+'</td><td class="num">'+usd(p.risk)+'</td><td class="num '+rcls(u)+'">'+rtxt(u)+'</td><td class="num">'+p.score+'</td></tr>'}),'Chưa có lệnh đang mở.');
+  $('#botpend').innerHTML=tb(['Coin','Hướng','Vào khi hồi về','Cắt lỗ','Hết hạn','Điểm'],S.pend.map(function(p){return '<tr><td>'+esc(p.label)+'</td><td>'+(p.side>0?'LONG':'SHORT')+'</td><td class="num">'+fmt(p.trig)+'</td><td class="num">'+fmt(p.sl)+'</td><td>'+botT(p.te)+'</td><td class="num">'+p.score+'</td></tr>'}),'Chưa có lệnh chờ kích hoạt.');
+  $('#botclosed').innerHTML=tb(['Đóng lúc','Coin','Hướng','Kết quả','R','Lãi/lỗ'],S.closed.slice(0,15).map(function(p){return '<tr><td>'+botT(p.exitT)+'</td><td>'+esc(p.label)+'</td><td>'+(p.side>0?'LONG':'SHORT')+'</td><td>'+{tp:'Chạm TP1',sl:'Cắt lỗ',time:'Hết giờ'}[p.reason]+'</td><td class="num '+rcls(p.R)+'">'+rtxt(p.R)+'</td><td class="num '+rcls(p.pnl)+'">'+usd(p.pnl,true)+'</td></tr>'}),'Chưa có lệnh nào đóng.');
+  $('#botlog').innerHTML=S.log.slice(0,80).map(function(l){return '<div class="botl k-'+l.k+'"><time>'+botT(l.t)+'</time><span>'+esc(l.m)+'</span></div>'}).join('')||'<p class="hint2">Chưa có hoạt động.</p>';
+}
+botBuildForm();botCoinStat();
+function botOpenPanel(open){
+  var p=$('#botpanel');p.hidden=!open;$('#botfab').setAttribute('aria-expanded',open?'true':'false');
+  if(open)botRender();
+}
+$('#botfab').addEventListener('click',function(){botOpenPanel($('#botpanel').hidden)});
+$('#botclose').addEventListener('click',function(){botOpenPanel(false)});
+$('#botOn').addEventListener('change',function(){
+  var on=this.checked;
+  if(on){
+    if(!botCoins().length){this.checked=false;toast('Hãy nhập danh sách coin cho bot trước.');return}
+    if(!BOT.S||BOT.S.end&&!BOT.S.pos.length&&!BOT.S.pend.length){
+      if(BOT.S&&!confirm('Phiên trước đã kết thúc. Bắt đầu phiên mới với vốn demo '+usd(BOT.cfg.bal0)+'?')){this.checked=false;return}
+      botNewSession();
+    }else botLog('start','Tiếp tục chạy bot. Bot sẽ tải lại các nến đã bỏ lỡ để cập nhật lệnh đang mở và lệnh chờ.');
+    BOT.on=true;botSave();botRender();botTick();
+  }else{
+    BOT.on=false;if(BOT.S)botLog('stop','Tạm dừng bot. Lệnh đang mở được giữ nguyên và sẽ được cập nhật khi bật lại.');botSave();botRender();
+  }
+});
+$('#botreset').addEventListener('click',function(){
+  if(!confirm('Xóa phiên hiện tại (lệnh, nhật ký, balance) và đặt lại về vốn demo '+usd(BOT.cfg.bal0)+'?'))return;
+  BOT.on=false;BOT.S=null;BOT.corr=null;botSave();botRender();
+});
+$('#botpanel').addEventListener('change',function(e){
+  var t=e.target,k=t.getAttribute&&t.getAttribute('data-bot');
+  if(t.id==='bot-coins'){BOT.cfg.coins=t.value;botCoinStat();botSave();return}
+  if(!k)return;
+  if(t.tagName==='SELECT'){BOT.cfg[k]=(k==='useFs')?+t.value:t.value}
+  else{
+    var f=BOT_F1.concat(BOT_F2).filter(function(x){return x[0]===k})[0],v=parseFloat(t.value);
+    if(!isFinite(v))v=BOT_DEF[k];
+    v=Math.min(f[3],Math.max(f[2],v));if(['maxPos','maxSide','corrMax','days','holdH','scanMin','maxLev'].indexOf(k)>=0)v=Math.round(v);
+    BOT.cfg[k]=v;t.value=v;
+  }
+  botSave();botRender();
+});
+$('#bot-file').addEventListener('click',function(){$('#bot-filein').click()});
+$('#bot-filein').addEventListener('change',function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  var rd=new FileReader();rd.onload=function(){var r=parseCoinText(rd.result);BOT.cfg.coins=r.tokens.join(', ');$('#bot-coins').value=BOT.cfg.coins;botCoinStat();botSave()};rd.readAsText(f);this.value='';
+});
+$('#bot-fromscan').addEventListener('click',function(){
+  var t=(scanState.tokens&&scanState.tokens.length)?scanState.tokens:loadList();
+  if(!t.length){toast('Chưa có danh sách quét nào để lấy.');return}
+  BOT.cfg.coins=t.join(', ');$('#bot-coins').value=BOT.cfg.coins;botCoinStat();botSave();
+});
+botRender();
+botTimer=setInterval(botTick,10000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')botTick()});
+if(BOT.on&&BOT.S){botLog('start','Trang được mở lại: bot tải các nến đã bỏ lỡ để cập nhật lệnh đang mở và lệnh chờ.');setTimeout(botTick,1200)}
+if(location.hash==='#bltest')window.__bot={BOT:BOT,tick:botTick,scan:botScan,render:botRender};
 
 /* ---------- khởi động ---------- */
 buildParams();syncSens();updateLast();setBtDefaults();setBtTrail();$('#bt-fee').value=P.fee;syncTf();
