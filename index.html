@@ -145,6 +145,16 @@ label.btn{display:inline-flex;align-items:center;position:relative}
 .file:focus-within{outline:2px solid var(--tl);outline-offset:2px}
 #liststat{font-size:12.5px}
 #btout tr.best td{background:var(--panel2);font-weight:600}
+#btout details.xsec{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+#btout details.xsec>summary{cursor:pointer;font:600 15px var(--f-display)}
+#btout h3.x{margin:16px 0 6px}
+.relctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:8px 0}
+.relctl label{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.relctl input,.relctl select{width:auto;max-width:9ch;font:13px var(--f-mono);padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--ink)}
+.relctl select{max-width:none}
+.pfbox{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.pfbox ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+.pfbox li{margin:3px 0}
 #btout .tbl small{color:var(--muted)}
 [hidden]{display:none!important}
 </style>
@@ -285,9 +295,11 @@ label.btn{display:inline-flex;align-items:center;position:relative}
 
   <section class="card" id="scancard" hidden aria-live="polite">
     <div class="scanhead"><h2>Quét danh sách coin</h2><span class="scanprog" id="scanprog"></span>
-      <span><label class="hint2"><input type="checkbox" id="scanonly"> Chỉ hiện coin có setup hoặc hộp</label> <button type="button" class="btn" id="scanagain">Quét lại</button> <button type="button" class="btn" id="scanclose">Đóng</button></span></div>
+      <span><label class="hint2"><input type="checkbox" id="scanonly"> Chỉ hiện coin có setup hoặc hộp</label> <button type="button" class="btn" id="scanagain">Quét lại</button> <button type="button" class="btn" id="scanscbtn">Chấm điểm setup</button> <button type="button" class="btn" id="scanpfbtn">Rủi ro danh mục</button> <button type="button" class="btn" id="scanclose">Đóng</button></span></div>
     <p class="note" id="scannote" hidden></p>
     <p class="hint2" id="scanlive" hidden></p>
+    <p class="hint2" id="scansc" hidden></p>
+    <div id="scanpf"></div>
     <div class="scanrows" id="scanrows"></div>
     <p class="disc">"Có setup": nến phá hộp vừa đóng cửa (tối đa 3 nến trước) theo đúng hướng xu hướng EMA, chưa chạm cắt lỗ hay TP1. "Có hộp hợp lệ": hộp đủ 2 đỉnh và 2 đáy đang hình thành, chờ phá vỡ. Không phải khuyến nghị đầu tư.</p>
   </section>
@@ -305,6 +317,7 @@ label.btn{display:inline-flex;align-items:center;position:relative}
     <h2>Backtest theo nến phá hộp</h2>
     <p class="hint2" style="margin-bottom:10px">Signal Long/Short là nến phá hộp của Box Lab (đúng quy tắc hộp, xu hướng và vào lệnh ở mục thông số phía trên). Cắt lỗ lấy theo setup, chốt lời theo RR bạn nhập, có thể trail stoploss. Mỗi tín hiệu chỉ dùng nến đã đóng. Mỗi coin giữ tối đa một lệnh tại một thời điểm; nếu một nến chạm cả cắt lỗ và chốt lời thì tính cắt lỗ. Chọn "Coin đang xem" để so sánh cả bốn khung, hoặc "Cả danh sách đã quét" để chạy nhiều coin ở khung đã chọn.</p>
     <div class="pform" id="btform">
+      <div class="fld"><label for="bt-fs">Funding &amp; OI</label><select id="bt-fs"><option value="1" selected>Lấy dữ liệu (coin .P)</option><option value="0">Không lấy</option></select></div>
       <div class="fld"><label for="bt-from">Từ ngày</label><input type="date" id="bt-from"></div>
       <div class="fld"><label for="bt-to">Đến ngày</label><input type="date" id="bt-to"></div>
       <div class="fld"><label for="bt-src">Coin</label><select id="bt-src"><option value="cur">Coin đang xem</option><option value="list">Cả danh sách đã quét</option></select></div>
@@ -661,7 +674,7 @@ function simSetupRR(d,ind,s,P,cfg,lim){
 function btVariant(sets,P,cfg,tFrom,tTo){
   var trades=[],skipped={},cnt={missed:0,expired:0,invalid:0,open:0};
   sets.forEach(function(S){
-    var d=S.d,lim=d.length-1,busy=-1;
+    var d=S.d,lim=d.length-1,busy=-1,ms=d.length>1?d[1].t-d[0].t:3600000,b24=Math.max(1,Math.round(86400000/ms));
     S.cands.forEach(function(s){
       if(s.b<=busy)return;
       if(d[s.b].t<tFrom||d[s.b].t>tTo)return;
@@ -671,7 +684,7 @@ function btVariant(sets,P,cfg,tFrom,tTo){
       if(r.out==='missed'||r.out==='expired'||r.out==='invalid'){cnt[r.out]++;return}
       if(r.out==='open'||r.out==='pending'){cnt.open++;return}
       trades.push({coin:S.label,side:s.side,b:s.b,t:d[s.b].t,tIn:d[r.fill].t,tOut:d[r.exit].t,entry:r.entry,sl:s.sl,tp:r.tp,px:r.px,out:r.out,g:r.g,feeR:r.feeR,
-        r:r.g-r.feeR,riskFrac:r.risk/r.entry,bars:r.exit-r.fill+1,boxLen:s.box.len,boxH:s.box.H/s.atr});
+        r:r.g-r.feeR,riskFrac:r.risk/r.entry,bars:r.exit-r.fill+1,boxLen:s.box.len,boxH:s.box.H/s.atr,si:d[s.b].t+ms,px24:(d[s.b].c/d[Math.max(0,s.b-b24)].c-1)*100,rr1:s.rr1,tq:s.box.tops+s.box.bots,trendOk:s.trend===s.side});
       busy=r.exit;
     });
   });
@@ -709,6 +722,198 @@ function btAccount(trades,cfg){
   var w=btWilson(wins,n);
   return {bal0:B0,bal:bal,net:bal/B0-1,netUsd:bal-B0,mdd:mdd,mddUsd:mddUsd,nCap:nCap,trN:n,wins:wins,win:n?wins/n:0,wlo:w[0],whi:w[1],pf:sl>0?sw/sl:(sw>0?Infinity:0),
     sumR:sumR,avgR:n?sumR/n:0,tp:tpN,sl:slN,trail:trN,time:tmN,avgBars:n?bars/n:0,curve:curve};
+}
+/* ---------- độ tin cậy của backtest: chỉ số bổ sung, Monte Carlo, walk-forward ---------- */
+function relRng(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+function relPct(sorted,p){if(!sorted.length)return 0;var x=p*(sorted.length-1),lo=Math.floor(x),hi=Math.ceil(x);return sorted[lo]+(sorted[hi]-sorted[lo])*(x-lo)}
+function relMean(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return a.length?s/a.length:0}
+/* Chỉ số bổ sung từ đường balance (a.curve = [{t,bal}]) và danh sách lệnh (có r, tIn). Equity theo ngày, 365 ngày/năm. */
+function relMetricsC(a,trs,from,to){
+  var out={days:0,sharpe:null,sortino:null,calmar:null,ddDays:0,ddNow:0,recovered:true,payoff:null,beWR:null,maxLoseStreak:0,avgWinR:0,avgLossR:0,expUsd:0};
+  var tr=(trs||[]).slice().sort(function(x,y){return x.tIn-y.tIn}),wins=tr.filter(function(t){return t.r>0}),loss=tr.filter(function(t){return t.r<=0});
+  out.avgWinR=wins.length?relMean(wins.map(function(t){return t.r})):0;
+  out.avgLossR=loss.length?relMean(loss.map(function(t){return t.r})):0;
+  if(wins.length&&loss.length&&out.avgLossR<0){out.payoff=out.avgWinR/-out.avgLossR;out.beWR=1/(1+out.payoff)}
+  out.expUsd=tr.length?a.netUsd/tr.length:0;
+  var st=0;tr.forEach(function(t){if(t.r<=0){st++;if(st>out.maxLoseStreak)out.maxLoseStreak=st}else st=0});
+  var D=86400000,cv=(a.curve||[]).slice().sort(function(x,y){return x.t-y.t}),eq=[],ci=0,v=1,dk,d0=Math.floor(from/D),d1=Math.floor(to/D);
+  for(dk=d0;dk<=d1;dk++){
+    var endT=(dk+1)*D-1;
+    while(ci<cv.length&&cv[ci].t<=endT){v=cv[ci].bal/a.bal0;ci++}
+    eq.push(v);
+  }
+  out.days=eq.length;
+  if(eq.length<8)return out;
+  var rets=[],q;for(q=0;q<eq.length;q++){rets.push(eq[q]/(q?eq[q-1]:1)-1)}
+  var m=relMean(rets),sd=Math.sqrt(relMean(rets.map(function(x){return (x-m)*(x-m)}))),dd=Math.sqrt(relMean(rets.map(function(x){return x<0?x*x:0})));
+  if(sd>1e-12)out.sharpe=m/sd*Math.sqrt(365);
+  if(dd>1e-12)out.sortino=m/dd*Math.sqrt(365);
+  var fin=eq[eq.length-1],yrs=eq.length/365;
+  if(a.mdd>1e-9&&fin>0)out.calmar=(Math.pow(fin,1/yrs)-1)/a.mdd;
+  var peak=eq[0],since=0,worst=0;
+  for(q=0;q<eq.length;q++){
+    if(eq[q]>=peak){if(q-since>worst)worst=q-since;peak=eq[q];since=q}
+  }
+  out.ddNow=eq[eq.length-1]<peak?eq.length-1-since:0;
+  out.ddDays=Math.max(worst,out.ddNow);out.recovered=out.ddNow===0;
+  return out;
+}
+/* Monte Carlo trên chuỗi R của các lệnh: xáo trộn thứ tự (cùng tập lệnh) hoặc lấy mẫu lại có hoàn lại. Rủi ro mỗi lệnh tính trên balance hiện tại hoặc $ cố định. */
+function relMC(rs,o){
+  var n=rs.length,rng=relRng(o.seed||20261030),dds=new Float64Array(o.sims),fins=new Float64Array(o.sims),sts=new Float64Array(o.sims);
+  var cDD=0,cRuin=0,cLoss=0,perm=rs.slice(),s,i,j,t;
+  for(s=0;s<o.sims;s++){
+    if(o.boot){perm=new Array(n);for(i=0;i<n;i++)perm[i]=rs[Math.floor(rng()*n)]}
+    else{for(i=n-1;i>0;i--){j=Math.floor(rng()*(i+1));t=perm[i];perm[i]=perm[j];perm[j]=t}}
+    var bal=o.bal0,peak=bal,mdd=0,streak=0,ms=0,ruin=false;
+    for(i=0;i<n;i++){
+      var risk=o.riskUsd>0?Math.min(o.riskUsd,bal):bal*o.riskPct/100;
+      bal+=risk*perm[i];if(bal<0)bal=0;
+      if(bal>peak)peak=bal;
+      var dd=peak>0?(peak-bal)/peak:1;if(dd>mdd)mdd=dd;
+      if(perm[i]<=0){streak++;if(streak>ms)ms=streak}else streak=0;
+      if(bal<=o.bal0*o.ruin)ruin=true;
+    }
+    dds[s]=mdd;fins[s]=bal;sts[s]=ms;
+    if(mdd>=o.ddTh)cDD++;if(ruin)cRuin++;if(bal<o.bal0)cLoss++;
+  }
+  var sd=Array.prototype.slice.call(dds).sort(function(a,b){return a-b}),sf=Array.prototype.slice.call(fins).sort(function(a,b){return a-b}),ss=Array.prototype.slice.call(sts).sort(function(a,b){return a-b});
+  return {sims:o.sims,n:n,dd50:relPct(sd,0.5),dd95:relPct(sd,0.95),dd99:relPct(sd,0.99),st50:relPct(ss,0.5),st95:relPct(ss,0.95),
+    f5:relPct(sf,0.05),f50:relPct(sf,0.5),f95:relPct(sf,0.95),pDD:cDD/o.sims,pRuin:cRuin/o.sims,pLoss:cLoss/o.sims,ddSorted:sd};
+}
+/* Walk-forward: runs = các cấu hình đã chạy trên toàn bộ dữ liệu, mỗi cấu hình có danh sách lệnh {t,r}. Mỗi đoạn kiểm tra dùng cấu hình tốt nhất (tổng R)
+   của đoạn huấn luyện ngay trước nó. base là danh sách lệnh của cấu hình đang chọn (cố định, không chọn lại). */
+function relWF(runs,base,from,to,o){
+  var L=(to-from)/(o.n+o.isMult),folds=[],f;
+  var agg=function(tr,a,b){var c=0,sum=0,w=0;tr.forEach(function(t){if(t.t>=a&&t.t<b){c++;sum+=t.r;if(t.r>0)w++}});return {n:c,sum:sum,w:w}};
+  var picks={},tot={n:0,sum:0,w:0},tb={n:0,sum:0,w:0};
+  for(f=0;f<o.n;f++){
+    var a=from+f*L,b=a+o.isMult*L,c=b+L,best=null,bs=null;
+    runs.forEach(function(r){var x=agg(r.tr,a,b);if(x.n>=o.minN&&(best===null||x.sum>bs.sum)){best=r;bs=x}});
+    var oos=best?agg(best.tr,b,c):{n:0,sum:0,w:0},fix=agg(base,b,c);
+    folds.push({a:a,b:b,c:c,best:best,isStat:bs,oos:oos,fix:fix});
+    if(best){picks[best.rr+'|'+best.k]=1;tot.n+=oos.n;tot.sum+=oos.sum;tot.w+=oos.w}
+    tb.n+=fix.n;tb.sum+=fix.sum;tb.w+=fix.w;
+  }
+  /* cấu hình tốt nhất trên toàn mẫu (con số "đẹp") */
+  var full=null,fs=null;
+  runs.forEach(function(r){var x=agg(r.tr,from,to+1);if(x.n>=o.minN&&(full===null||x.sum>fs.sum)){full=r;fs=x}});
+  return {folds:folds,tot:tot,fixed:tb,full:full,fullStat:fs,distinct:Object.keys(picks).length,L:L};
+}
+
+/* ---- Danh mục: tương quan giữa coin và mô phỏng giới hạn rủi ro khi nhiều lệnh chạy cùng lúc ---- */
+/* rows: nến H1 [{t,c}] → bản đồ giờ → log-return */
+function pfRet(rows){
+  var m={},i;
+  for(i=1;i<rows.length;i++){if(rows[i-1].c>0&&rows[i].c>0)m[rows[i].t]=Math.log(rows[i].c/rows[i-1].c)}
+  return m;
+}
+function pfCorrPair(a,b,minN){
+  var xs=[],ys=[],k;
+  for(k in a){if(b[k]!==undefined){xs.push(a[k]);ys.push(b[k])}}
+  var n=xs.length;if(n<(minN||30))return null;
+  var mx=0,my=0,i;for(i=0;i<n;i++){mx+=xs[i];my+=ys[i]}mx/=n;my/=n;
+  var sxy=0,sxx=0,syy=0;for(i=0;i<n;i++){var dx=xs[i]-mx,dy=ys[i]-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy}
+  if(sxx<1e-18||syy<1e-18)return null;
+  return sxy/Math.sqrt(sxx*syy);
+}
+/* rets: {label: map}. Trả về {c:{a:{b:rho}}, pairs:[{a,b,rho}] giảm dần, avg, neff, n} */
+function pfCorr(rets,minN){
+  var L=Object.keys(rets),c={},pairs=[],i,j,s=0;
+  L.forEach(function(a){c[a]={}});
+  for(i=0;i<L.length;i++)for(j=i+1;j<L.length;j++){
+    var r=pfCorrPair(rets[L[i]],rets[L[j]],minN);
+    if(r!==null){c[L[i]][L[j]]=r;c[L[j]][L[i]]=r;pairs.push({a:L[i],b:L[j],rho:r});s+=r}
+  }
+  pairs.sort(function(x,y){return y.rho-x.rho});
+  var avg=pairs.length?s/pairs.length:0,n=L.length;
+  return {c:c,pairs:pairs,avg:avg,n:n,neff:n>1?n/(1+(n-1)*Math.max(0,avg)):n};
+}
+/* trades: [{t,bars,side,coin,r}] (t = giờ vào, bars = số nến M15 giữ lệnh).
+   o: {bal0,riskPct,maxRiskPct,maxPos,maxSide,corrTh,corrMax,corr}. Giá trị 0/không có = không giới hạn.
+   Rủi ro mỗi lệnh = riskPct% balance đã chốt tại lúc vào. Balance chỉ đổi khi lệnh đóng. */
+function pfSim(trades,o){
+  var B=o.bal0>0?o.bal0:1000,rp=(o.riskPct>0?o.riskPct:1)/100,maxR=(o.maxRiskPct>0?o.maxRiskPct:0)/100,maxP=o.maxPos>0?o.maxPos:0,maxS=o.maxSide>0?o.maxSide:0,
+      cTh=o.corrTh>0?o.corrTh:0,cMax=o.corrMax>0?o.corrMax:0,corr=o.corr||null;
+  var acc=[],ts=trades.slice().sort(function(a,b){return a.t-b.t}),open=[],skip={pos:0,risk:0,side:0,corr:0},n=0,sumR=0,peak=B,dd=0,peakRisk=0,peakPos=0,day={},w=0;
+  var START=B;
+  function closeUpTo(t){
+    open.sort(function(a,b){return a.te-b.te});
+    while(open.length&&open[0].te<=t){
+      var p=open.shift();B+=p.r*p.risk;
+      var dk=Math.floor(p.te/86400000);day[dk]=(day[dk]||0)+p.r*p.risk;
+      if(B>peak)peak=B;if(peak>0&&(peak-B)/peak>dd)dd=(peak-B)/peak;
+    }
+  }
+  ts.forEach(function(t){
+    closeUpTo(t.t);
+    var risk=o.riskUsd>0?Math.min(o.riskUsd,B):B*rp,orisk=0,same=0,cor=0,k;
+    for(k=0;k<open.length;k++){
+      orisk+=open[k].risk;
+      if(open[k].side===t.side){
+        same++;
+        if(cTh&&corr&&corr[t.coin]&&corr[t.coin][open[k].coin]!==undefined&&corr[t.coin][open[k].coin]>=cTh)cor++;
+      }
+    }
+    if(maxP&&open.length>=maxP){skip.pos++;return}
+    if(maxR&&(orisk+risk)/B>maxR+1e-12){skip.risk++;return}
+    if(maxS&&same>=maxS){skip.side++;return}
+    if(cMax&&cTh&&cor>=cMax){skip.corr++;return}
+    acc.push(t.ref);open.push({te:t.te!=null?t.te:t.t+t.bars*900000,side:t.side,coin:t.coin,r:t.r,risk:risk});
+    n++;sumR+=t.r;if(t.r>0)w++;
+    var cur=(orisk+risk)/B;if(cur>peakRisk)peakRisk=cur;if(open.length>peakPos)peakPos=open.length;
+  });
+  closeUpTo(Infinity);
+  var worst=0;Object.keys(day).forEach(function(k){if(day[k]<worst)worst=day[k]});
+  return {acc:acc,n:n,w:w,skip:skip,skipped:skip.pos+skip.risk+skip.side+skip.corr,sumR:sumR,bal:B,net:B/START-1,dd:dd,peakRisk:peakRisk,peakPos:peakPos,worstDay:worst/START};
+}
+
+/* ---- Funding / OI và chấm điểm setup ---- */
+/* arr tăng dần theo t. Giá trị cuối cùng có t <= tt và không cũ hơn tol (ms); không có thì null. */
+function fsAt(arr,tt,tol){
+  if(!arr||!arr.length)return null;
+  var lo=0,hi=arr.length;
+  while(lo<hi){var m=(lo+hi)>>1;if(arr[m].t<=tt)lo=m+1;else hi=m}
+  if(lo===0)return null;
+  var e=arr[lo-1];
+  return tol&&tt-e.t>tol?null:e.v;
+}
+/* fund: %/8h, oiNow/oiPrev: giá trị OI hiện tại và 24h trước. Trả về {fund,oi24 (%)}; thiếu dữ liệu thì null. */
+function fsFeat(fund,oiNow,oiPrev){
+  return {fund:fund==null||!isFinite(fund)?null:fund,oi24:(oiNow>0&&oiPrev>0)?(oiNow/oiPrev-1)*100:null};
+}
+/* f: {touches,rr,trendOk,hH,side,fund,oi24,px24}. Chỉ tính các thành phần có dữ liệu rồi quy về thang 100. */
+function plScoreBox(f){
+  var parts=[],sum=0,max=0,s=f.side>0?1:-1;
+  function add(k,pts,mx,note){parts.push({k:k,pts:pts,max:mx,note:note});sum+=pts;max+=mx}
+  var tc=f.touches;
+  add('Chất lượng hộp',tc>=8?25:tc>=6?20:tc>=4?12:6,25,tc+' lần chạm biên');
+  var rr=f.rr;
+  add('R:R tới TP1',rr>=2?20:rr>=1.5?14:rr>=1?8:0,20,rr==null||!isFinite(rr)?'–':'1:'+rr.toFixed(2));
+  add('Thuận xu hướng EMA',f.trendOk?10:0,10,f.trendOk?'có':'không');
+  var hh=f.hH;
+  add('Độ nén của hộp',hh<=3?5:hh<=4.5?3:1,5,hh==null||!isFinite(hh)?'–':'cao '+hh.toFixed(1)+' ATR');
+  if(f.fund!=null){
+    var c=f.fund*s;
+    add('Funding',c<=0?20:c<=0.01?15:c<=0.03?8:c<=0.05?3:0,20,(f.fund>=0?'+':'')+f.fund.toFixed(4)+'%/8h'+(c>0.03?' (phe của lệnh này đang đông)':c<=0?' (ngược phe lệnh, ít đông)':''));
+  }
+  if(f.oi24!=null&&f.px24!=null){
+    var pd=f.px24*s,o=f.oi24,pts,nt;
+    if(Math.abs(o)<2){pts=10;nt='OI đi ngang'}
+    else if(o>0&&pd>0){pts=20;nt='OI tăng, giá thuận hướng: có vị thế mới đẩy cùng chiều'}
+    else if(o>0){pts=6;nt='OI tăng nhưng giá ngược hướng: vị thế mới đang chống lệnh'}
+    else if(pd>0){pts=8;nt='giá thuận hướng nhưng OI giảm: lực đẩy yếu'}
+    else{pts=10;nt='OI giảm, giá ngược hướng: đang đóng vị thế'}
+    add('Open interest',pts,20,(o>0?'+':'')+o.toFixed(1)+'% / 24h · '+nt);
+  }
+  return {score:max?Math.round(sum/max*100):0,parts:parts,sum:sum,max:max,full:parts.length===6};
+}
+/* flt: {fundTh (%/8h, 0=tắt), oiTh (%, 0=tắt), minScore (0=tắt)}. Trả về lý do bị loại hoặc null. */
+function fsPass(t,flt){
+  if(flt.fundTh>0&&t.fund!=null&&t.fund*t.side>flt.fundTh)return 'funding';
+  if(flt.oiTh>0&&t.oi24!=null&&t.oi24<-flt.oiTh)return 'oi';
+  if(flt.minScore>0&&t.sc!=null&&t.sc<flt.minScore)return 'score';
+  return null;
 }
 //#LOGIC-END
 
@@ -1380,6 +1585,7 @@ function renderScan(){
       var b=r.box,tr=r.trend;
       h+='<span class="sr2">Hộp '+b.len+' nến, '+b.tops+' đỉnh và '+b.bots+' đáy chạm biên, '+fmt(b.B)+' – '+fmt(b.T)+'. '+(P.trend==='ema'?(tr>0?'Xu hướng tăng: chỉ canh phá lên.':tr<0?'Xu hướng giảm: chỉ canh phá xuống.':'Xu hướng EMA chưa rõ, chưa có hướng được phép.'):'Bộ lọc xu hướng đang tắt.')+'</span>';
     }else r.reason&&(h+='<span class="sr2">'+esc(r.reason)+'</span>');
+    if(r.score)h+='<span class="sr3"><b>Điểm setup '+r.score.score+'/100</b> · '+r.score.parts.map(function(q){return esc(q.k)+' '+q.pts+'/'+q.max+' ('+esc(q.note)+')'}).join(' · ')+'</span>';
     if(r.status!=='error')h+='<span class="sr3">Bấm để xem biểu đồ và setup</span>';
     return h+'</button>';
   }).join('');
@@ -1658,7 +1864,7 @@ function renderScanLive(){
 setInterval(function(){scanLivePrices();renderScanLive()},5000);
 
 /* ---------- backtest ---------- */
-var bt={id:0,busy:false,sets:{},data:{},X:null,P:null,from:0,to:0,dtf:'',single:true,err:'',skippedTf:[],failed:[],stale:false};
+var bt={id:0,busy:false,hist:{},fsOn:false,wf:null,sets:{},data:{},X:null,P:null,from:0,to:0,dtf:'',single:true,err:'',skippedTf:[],failed:[],stale:false};
 function ymd(t){var d=new Date(t);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
 function setBtDefaults(){
   var days={'15m':14,'1h':60,'4h':180,'1d':365}[state.tf],now=Date.now();
@@ -1727,7 +1933,7 @@ async function btRun(){
     if((to-from)/TFMS[tf]+WARM+P.hold>20000){skipTf.push(TFN[tf]);return false}
     return true;
   });
-  var my=++bt.id;bt.busy=true;bt.sets={};bt.data={};bt.X=null;bt.err='';bt.stale=false;bt.P=JSON.parse(JSON.stringify(P));bt.from=from;bt.to=to;bt.dtf=dtf;bt.single=single;bt.skippedTf=skipTf;bt.failed=[];
+  var my=++bt.id;bt.busy=true;bt.hist={};bt.fsOn=$('#bt-fs').value==='1';bt.wf=null;bt.sets={};bt.data={};bt.X=null;bt.err='';bt.stale=false;bt.P=JSON.parse(JSON.stringify(P));bt.from=from;bt.to=to;bt.dtf=dtf;bt.single=single;bt.skippedTf=skipTf;bt.failed=[];
   var jobs=[];list.forEach(function(n){tfs.forEach(function(tf){jobs.push({n:n,tf:tf})})});
   var done=0,idx=0;
   $('#btrun').disabled=true;$('#btstop').hidden=false;
@@ -1755,6 +1961,14 @@ async function btRun(){
   }
   await Promise.all([worker(),worker()]);
   if(my!==bt.id)return;
+  if(bt.fsOn){
+    var hl=[],seenH={};
+    Object.keys(bt.data).forEach(function(tf){bt.data[tf].forEach(function(r){if(r.fut&&!seenH[r.label]){seenH[r.label]=1;hl.push(r)}})});
+    var hi=0,hd=0;
+    async function hw(){while(hi<hl.length&&my===bt.id){var r=hl[hi++];bt.hist[r.label]=await fsHist(r.sym);hd++;$('#btinfo').textContent='Đang lấy funding và open interest… '+hd+'/'+hl.length;await sleep(80)}}
+    if(hl.length)await Promise.all([hw(),hw(),hw()]);
+    if(my!==bt.id)return;
+  }
   bt.busy=false;$('#btrun').disabled=false;$('#btstop').hidden=true;
   btCompute();
 }
@@ -1769,6 +1983,7 @@ function btCompute(){
   var X={cfg:cfg,tf:cfg.tf,sets:sets};
   var run=function(S,o){var c=Object.assign({},cfg,o||{}),v=btVariant(S,Pb,c,from,to);return {v:v,a:btAccount(v.trades,c)}};
   X.main=run(sets);
+  fsEnrich(X.main.v.trades);
   X.byTf=[];
   if(bt.single)['15m','1h','4h','1d'].forEach(function(tf){X.byTf.push({tf:tf,r:bt.data[tf]&&bt.data[tf].length?run(bt.data[tf]):null})});
   X.rr=[1,1.5,2,2.5,3,4,5].map(function(v){return {v:v,a:run(sets,{rr:v}).a}});
@@ -1826,6 +2041,274 @@ function drawEq(curve,b0){
   curve.forEach(function(p,i){if(i)g.lineTo(X(i),Y(p.bal));else g.moveTo(X(i),Y(p.bal))});g.stroke();
   g.textAlign='left';g.textBaseline='bottom';g.fillStyle=C('--muted');g.fillText('Balance theo thời gian, mỗi điểm là một lệnh đóng (đường đứt là balance ban đầu)',L+4,h-2);
 }
+/* ---------- độ tin cậy, lọc funding/OI, điểm setup, danh mục ---------- */
+var REL={ddTh:20,ruin:50,sims:3000,n:4,is:3,minN:5};
+var PFK='boxlab.pf.v1',PFS={maxRiskPct:4,maxPos:5,maxSide:3,corrTh:0.8,corrMax:2};
+var FSK='boxlab.fs.v1',FSF={fundTh:0,oiTh:0,minScore:0};
+try{var _pf=JSON.parse(localStorage.getItem(PFK)||'null');if(_pf)Object.keys(PFS).forEach(function(k){if(typeof _pf[k]==='number')PFS[k]=_pf[k]})}catch(e){}
+try{var _fs=JSON.parse(localStorage.getItem(FSK)||'null');if(_fs)Object.keys(FSF).forEach(function(k){if(typeof _fs[k]==='number')FSF[k]=_fs[k]})}catch(e){}
+function xSave(){try{localStorage.setItem(PFK,JSON.stringify(PFS));localStorage.setItem(FSK,JSON.stringify(FSF))}catch(e){}}
+function xClamp(v,a,b,d){return isFinite(v)?Math.min(b,Math.max(a,v)):d}
+/* Đọc một ô nhập có data-x="nhóm.khoá". Trả về true nếu là ô của khối này. */
+function xRead(e){
+  var key=e.target.getAttribute&&e.target.getAttribute('data-x');if(!key)return false;
+  var g=key.split('.')[0],k=key.split('.')[1],v=parseFloat(e.target.value);
+  if(g==='rel'){
+    var lim={ddTh:[1,99,20],ruin:[1,99,50],sims:[1000,10000,3000],n:[2,8,4],is:[1,6,3],minN:[1,50,5]}[k];
+    REL[k]=xClamp(v,lim[0],lim[1],lim[2]);if(k==='n'||k==='is'||k==='minN')REL[k]=Math.round(REL[k]);
+  }else if(g==='pf'){
+    var l2={maxRiskPct:[0,50],maxPos:[0,50],maxSide:[0,50],corrTh:[0.3,0.99],corrMax:[0,10]}[k];
+    PFS[k]=xClamp(v,l2[0],l2[1],PFS[k]);if(k==='maxPos'||k==='maxSide'||k==='corrMax')PFS[k]=Math.round(PFS[k]);
+  }else if(g==='fs'){
+    var l3={fundTh:[0,1],oiTh:[0,50],minScore:[0,100]}[k];
+    FSF[k]=xClamp(isFinite(v)?v:0,l3[0],l3[1],0);
+  }else return false;
+  xSave();return true;
+}
+function xField(g,k,label,mn,mx,st,val,tip,pre){return '<label title="'+tip+'">'+label+' <input type="number" data-x="'+g+'.'+k+'" id="'+(pre||'')+g+'-'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+val+'"></label>'}
+function pfForm(pre){
+  return '<div class="relctl">'+xField('pf','maxRiskPct','Trần tổng rủi ro đang mở (%)',0,50,0.5,PFS.maxRiskPct,'Tổng rủi ro của mọi lệnh đang mở không được vượt mức này. 0 = không giới hạn',pre)+
+    xField('pf','maxPos','Tối đa số lệnh mở cùng lúc',0,50,1,PFS.maxPos,'0 = không giới hạn',pre)+
+    xField('pf','maxSide','Tối đa lệnh cùng chiều',0,50,1,PFS.maxSide,'Số LONG (hoặc SHORT) mở cùng lúc. 0 = không giới hạn',pre)+
+    xField('pf','corrTh','Coi là tương quan khi ρ ≥',0.3,0.99,0.05,PFS.corrTh,'Hệ số tương quan lợi suất',pre)+
+    xField('pf','corrMax','Tối đa lệnh cùng chiều tương quan',0,10,1,PFS.corrMax,'Lệnh mới bị chặn nếu đã có từng ấy lệnh cùng chiều tương quan cao. 0 = không giới hạn',pre)+'</div>';
+}
+/* ----- funding / OI ----- */
+async function fsHist(sym){
+  var out={fd:null,oi:null};
+  try{
+    var f=await retry(function(){return lpFetch(['https://fapi.binance.com/fapi/v1/fundingRate?symbol='+sym+'&limit=1000'])});
+    out.fd=f.map(function(x){return {t:+x.fundingTime,v:+x.fundingRate*100}}).filter(function(x){return isFinite(x.v)}).sort(function(a,b){return a.t-b.t});
+  }catch(e){}
+  try{
+    var oi=[],end=null,g=0;
+    while(g<2){
+      g++;
+      var rows=await retry(function(){return lpFetch(['https://fapi.binance.com/futures/data/openInterestHist?symbol='+sym+'&period=1h&limit=500'+(end?'&endTime='+end:'')])});
+      if(!rows.length)break;
+      oi=rows.map(function(x){return {t:+x.timestamp,v:+x.sumOpenInterestValue}}).concat(oi);
+      if(rows.length<500)break;
+      end=oi[0].t-1;
+    }
+    out.oi=oi.filter(function(x){return isFinite(x.v)&&x.v>0});
+  }catch(e){}
+  return out;
+}
+function fsEnrich(trades){
+  trades.forEach(function(t){
+    var H=bt.hist[t.coin],q=fsFeat(H?fsAt(H.fd,t.si,9*3600000):null,H?fsAt(H.oi,t.si,2*3600000):null,H?fsAt(H.oi,t.si-86400000,2*3600000):null);
+    t.fund=q.fund;t.oi24=q.oi24;
+    t.sc=plScoreBox({touches:t.tq,rr:t.rr1,trendOk:t.trendOk,hH:t.boxH,side:t.side,fund:t.fund,oi24:t.oi24,px24:t.px24}).score;
+  });
+}
+function xClone(trs){return trs.map(function(t){return Object.assign({},t)})}
+function xPct(x,d){return (x*100).toFixed(d==null?1:d)+'%'}
+function xNotes(a){return a.map(function(x){return '<p class="hint2" style="margin:6px 0">'+esc(x)+'</p>'}).join('')}
+/* ----- 1. độ tin cậy ----- */
+function btWfRuns(X){
+  var key=[bt.id,X.tf,X.cfg.dir,X.cfg.fee,X.cfg.trailRR,bt.from,bt.to].join('|');
+  if(bt.wf&&bt.wf.key===key)return bt.wf.runs;
+  var runs=[];
+  [1,1.5,2,2.5,3,4,5].forEach(function(rr){['none','be','atr','psar','bar','ema'].forEach(function(k){
+    var c=Object.assign({},X.cfg,{rr:rr,trail:k,trailP:BT_TRAIL[k].def}),vv=btVariant(X.sets,bt.P,c,bt.from,bt.to);
+    runs.push({rr:rr,k:k,tr:vv.trades.map(function(t){return {t:t.tIn,r:t.r}})});
+  })});
+  bt.wf={key:key,runs:runs};return runs;
+}
+function btRelHtml(X,a,v){
+  var cfg=X.cfg,to=Math.min(bt.to,Date.now()),h='<details class="xsec" open><summary>Độ tin cậy của kết quả</summary>';
+  var me=relMetricsC(a,v.trades,bt.from,to),f2=function(x){return x==null||!isFinite(x)?'–':x.toFixed(2)};
+  h+='<h3 class="x">Chỉ số bổ sung</h3><div class="kv">'+
+    stat('Kỳ vọng mỗi lệnh','<span class="'+rcls(a.avgR)+'">'+rtxt(a.avgR)+'</span>',usd(me.expUsd,true)+' mỗi lệnh')+
+    stat('Lãi trung bình / lỗ trung bình',me.payoff==null?'–':f2(me.payoff)+' : 1','thắng '+rtxt(me.avgWinR)+' · thua '+rtxt(me.avgLossR))+
+    stat('Tỷ lệ thắng hoà vốn',me.beWR==null?'–':pct0(me.beWR),'bạn đang thắng '+pct0(a.win))+
+    stat('Chuỗi thua dài nhất (thực tế)',String(me.maxLoseStreak),'lệnh liên tiếp')+
+    stat('Sharpe (theo ngày)',f2(me.sharpe),me.days<8?'cần ít nhất 8 ngày':'')+
+    stat('Sortino (theo ngày)',f2(me.sortino),'chỉ phạt biến động xuống')+
+    stat('Calmar',f2(me.calmar),me.days<90?'quy năm từ chỉ '+me.days+' ngày dữ liệu nên rất dễ bị phóng đại':'lãi hằng năm / sụt vốn tối đa')+
+    stat('Sụt vốn dài nhất',me.days<8?'–':me.ddDays+' ngày',me.days<8?'':(me.recovered?'đã phục hồi':'chưa phục hồi, đã '+me.ddNow+' ngày'))+'</div>';
+  var rs=v.trades.slice().sort(function(p,q){return p.tIn-q.tIn}).map(function(t){return t.r});
+  h+='<h3 class="x">Monte Carlo: nếu các lệnh xảy ra theo thứ tự khác</h3>';
+  h+='<div class="relctl">'+xField('rel','ddTh','Ngưỡng sụt vốn báo động (%)',1,99,1,REL.ddTh,'')+xField('rel','ruin','Mức balance báo động (% vốn đầu)',1,99,1,REL.ruin,'')+
+     '<label>Số lần mô phỏng <select data-x="rel.sims"><option value="1000"'+(REL.sims===1000?' selected':'')+'>1.000</option><option value="3000"'+(REL.sims===3000?' selected':'')+'>3.000</option><option value="10000"'+(REL.sims===10000?' selected':'')+'>10.000</option></select></label></div>';
+  if(rs.length<10)h+='<p class="hint2">Cần ít nhất 10 lệnh để mô phỏng có ý nghĩa (hiện có '+rs.length+'). Hãy kéo dài khoảng ngày, thêm coin hoặc đổi khung.</p>';
+  else{
+    var sims=rs.length>2000&&REL.sims>3000?3000:REL.sims,rp=cfg.riskPct>0?cfg.riskPct:1;
+    var base={sims:sims,bal0:cfg.bal0,riskUsd:cfg.riskUsd,riskPct:rp,ddTh:REL.ddTh/100,ruin:REL.ruin/100};
+    var A=relMC(rs,Object.assign({boot:false},base)),Bm=relMC(rs,Object.assign({boot:true,seed:777},base));
+    var below=0;A.ddSorted.forEach(function(x){if(x<a.mdd-1e-12)below++});
+    var pa=xPct,row=function(l,p,q){return '<tr><td>'+l+'</td><td class="num">'+p+'</td><td class="num">'+q+'</td></tr>'};
+    h+='<div class="tblwrap"><table class="tbl"><thead><tr><th>Chỉ tiêu ('+sims.toLocaleString('en-US')+' lần, '+rs.length+' lệnh)</th><th class="num">Xáo trộn thứ tự<br><small>cùng tập lệnh</small></th><th class="num">Lấy mẫu lại<br><small>có hoàn lại</small></th></tr></thead><tbody>'+
+      row('Sụt vốn tối đa, trung vị','-'+pa(A.dd50),'-'+pa(Bm.dd50))+
+      row('Sụt vốn tối đa, xấu 95% (chỉ 5% số lần tệ hơn)','<b>-'+pa(A.dd95)+'</b>','<b>-'+pa(Bm.dd95)+'</b>')+
+      row('Sụt vốn tối đa, xấu 99%','-'+pa(A.dd99),'-'+pa(Bm.dd99))+
+      row('Xác suất sụt vốn từ -'+REL.ddTh+'% trở lên',pa(A.pDD),pa(Bm.pDD))+
+      row('Xác suất balance chạm '+REL.ruin+'% vốn đầu',pa(A.pRuin),pa(Bm.pRuin))+
+      row('Chuỗi thua liên tiếp: trung vị / xấu 95%',A.st50+' / '+A.st95,Bm.st50+' / '+Bm.st95)+
+      row('Balance cuối: xấu 5% / trung vị / tốt 5%',A.f5===A.f95?'luôn '+usd(A.f50):usd(A.f5)+' / '+usd(A.f50)+' / '+usd(A.f95),usd(Bm.f5)+' / '+usd(Bm.f50)+' / '+usd(Bm.f95))+
+      row('Xác suất kết thúc lỗ so với vốn đầu',A.f5===A.f95?'–':pa(A.pLoss),pa(Bm.pLoss))+'</tbody></table></div>';
+    var pc=below/A.ddSorted.length;
+    h+=xNotes(['Sụt vốn trong backtest thực tế là -'+(a.mdd*100).toFixed(1)+'%, nằm ở phân vị '+Math.round(pc*100)+'% của các lần xáo trộn'+(pc<0.4?': lịch sử này khá may mắn về thứ tự lệnh, hãy chuẩn bị cho mức xấu hơn.':pc>0.6?': lịch sử này khá xui về thứ tự lệnh.':'.'),
+      'Cách đọc: "Xáo trộn" giữ nguyên các lệnh và chỉ đổi thứ tự, nên balance cuối không đổi, chỉ sụt vốn và chuỗi thua thay đổi. "Lấy mẫu lại" bốc ngẫu nhiên có hoàn lại từ các lệnh đó nên balance cuối cũng dao động. Mô phỏng chạy trên R của từng lệnh với rủi ro '+(cfg.riskUsd>0?usd(cfg.riskUsd)+' cố định':rp+'% balance hiện tại')+', không tính giới hạn đòn bẩy, thanh lý và việc nhiều lệnh chồng nhau. Nó không phát hiện được việc edge biến mất khi thị trường đổi chế độ, đó là việc của walk-forward.']);
+  }
+  h+='<h3 class="x">Walk-forward: chọn tham số trên quá khứ, thử trên đoạn chưa từng thấy</h3>';
+  h+='<div class="relctl">'+xField('rel','n','Số đoạn kiểm tra',2,8,1,REL.n,'')+xField('rel','is','Đoạn huấn luyện dài gấp (lần đoạn kiểm tra)',1,6,1,REL.is,'')+xField('rel','minN','Tối thiểu lệnh để được chọn',1,50,1,REL.minN,'')+'</div>';
+  var W=relWF(btWfRuns(X),v.trades.map(function(t){return {t:t.tIn,r:t.r}}),bt.from,to,{n:REL.n,isMult:REL.is,minN:REL.minN});
+  var fr=function(f){return ymd(f.a)+' → '+ymd(f.b)};
+  h+='<div class="tblwrap"><table class="tbl"><thead><tr><th>Đoạn</th><th>Huấn luyện</th><th>Cấu hình được chọn</th><th class="num">Lệnh · tổng R<br><small>huấn luyện</small></th><th>Kiểm tra (chưa từng thấy)</th><th class="num">Lệnh</th><th class="num">Thắng</th><th class="num">Tổng R</th><th class="num">Tổng R nếu giữ cấu hình hiện tại</th></tr></thead><tbody>'+
+    W.folds.map(function(f,i){
+      return '<tr><td>'+(i+1)+'</td><td>'+fr(f)+'</td><td>'+(f.best?'RR '+f.best.rr+' · '+esc(BT_TNAME[f.best.k]):'<span class="muted">không đủ lệnh</span>')+'</td><td class="num">'+(f.isStat?f.isStat.n+' · '+rtxt(f.isStat.sum):'–')+'</td>'+
+        '<td>'+ymd(f.b)+' → '+ymd(f.c)+'</td><td class="num">'+(f.best?f.oos.n:'–')+'</td><td class="num">'+(f.best&&f.oos.n?pct0(f.oos.w/f.oos.n):'–')+'</td><td class="num '+(f.best?rcls(f.oos.sum):'')+'">'+(f.best?rtxt(f.oos.sum):'–')+'</td><td class="num '+rcls(f.fix.sum)+'">'+f.fix.n+' · '+rtxt(f.fix.sum)+'</td></tr>';
+    }).join('')+
+    '<tr class="best"><td colspan="5">Tổng các đoạn kiểm tra</td><td class="num">'+W.tot.n+'</td><td class="num">'+(W.tot.n?pct0(W.tot.w/W.tot.n):'–')+'</td><td class="num '+rcls(W.tot.sum)+'">'+rtxt(W.tot.sum)+'</td><td class="num '+rcls(W.fixed.sum)+'">'+W.fixed.n+' · '+rtxt(W.fixed.sum)+'</td></tr></tbody></table></div>';
+  var wa=W.tot.n?W.tot.sum/W.tot.n:null,fa=W.fullStat&&W.fullStat.n?W.fullStat.sum/W.fullStat.n:null,vt=[];
+  if(W.full)vt.push('Cấu hình tốt nhất trên toàn mẫu (RR '+W.full.rr+' · '+BT_TNAME[W.full.k]+') cho '+rtxt(W.fullStat.sum)+' trong '+W.fullStat.n+' lệnh, trung bình '+rtxt(fa)+' mỗi lệnh. Đây là con số "đẹp" vì được chọn sau khi đã nhìn toàn bộ dữ liệu.');
+  if(wa!=null)vt.push('Walk-forward (chỉ tính lệnh ở các đoạn chưa từng thấy, tham số chọn từ đoạn trước): '+rtxt(W.tot.sum)+' trong '+W.tot.n+' lệnh, trung bình '+rtxt(wa)+' mỗi lệnh'+(fa!=null&&fa>0?', giữ lại khoảng '+Math.round(wa/fa*100)+'% so với con số đẹp':'')+'.');
+  if(wa!=null)vt.push(wa>0.05?(fa!=null&&wa>=fa*0.5?'Kết luận sơ bộ: kết quả giữ lại được phần lớn khi thử ngoài mẫu, dấu hiệu khá tốt (vẫn cần thêm dữ liệu và coin khác).':'Kết luận sơ bộ: vẫn dương ngoài mẫu nhưng yếu hơn nhiều so với con số đẹp, phần lớn con số đẹp là do chọn tham số trên chính mẫu.'):'Kết luận sơ bộ: ngoài mẫu không còn lãi, nên con số đẹp rất có thể chỉ là do khớp quá mức. Chưa nên tin cấu hình này.');
+  if(W.tot.n<30)vt.push('Chỉ có '+W.tot.n+' lệnh ở các đoạn kiểm tra, quá ít để kết luận chắc chắn. Hãy kéo dài khoảng ngày, thêm coin hoặc giảm số đoạn.');
+  var nb=W.folds.filter(function(f){return !f.best}).length;
+  if(nb)vt.push(nb+' đoạn huấn luyện có ít hơn '+REL.minN+' lệnh nên không chọn được cấu hình, đoạn kiểm tra tương ứng bị bỏ qua.');
+  if(W.tot.n)vt.push('Qua '+(REL.n-nb)+' đoạn, thuật toán chọn '+W.distinct+' cấu hình khác nhau'+(W.distinct>=Math.max(3,Math.ceil((REL.n-nb)*0.75))?': tham số đổi liên tục, dấu hiệu không ổn định.':'.'));
+  vt.push('Cách làm: mỗi đoạn huấn luyện chọn trong 42 cấu hình (7 mức RR × 6 kiểu trail, thông số trail mặc định, thông số hộp và hướng lệnh giữ như bạn đang đặt) cấu hình có tổng R cao nhất, rồi áp nguyên cấu hình đó vào đoạn kiểm tra ngay sau. Lệnh được gán vào đoạn theo thời điểm vào lệnh, mỗi cấu hình được mô phỏng liên tục trên toàn khoảng ngày nên một lệnh kéo qua ranh giới hai đoạn vẫn thuộc đoạn nó bắt đầu (xấp xỉ).');
+  return h+xNotes(vt)+'</details>';
+}
+/* ----- 2. lọc funding/OI và điểm setup ----- */
+function btFsHtml(X,a,v){
+  var cfg=X.cfg,tr=v.trades,flt=FSF,trf=[],rm=[],why={funding:0,oi:0,score:0};
+  tr.forEach(function(t){var w=fsPass(t,flt);if(w){why[w]++;rm.push(t)}else trf.push(t)});
+  var haveF=tr.filter(function(t){return t.fund!=null}).length,haveO=tr.filter(function(t){return t.oi24!=null}).length;
+  var h='<details class="xsec" open><summary>Funding, OI và điểm setup: kiểm chứng và lọc</summary>'+
+    '<div class="relctl">'+xField('fs','fundTh','Bỏ lệnh nếu funding phe lệnh &gt; (%/8h)',0,1,0.01,FSF.fundTh,'LONG khi funding dương cao, hoặc SHORT khi funding âm sâu. 0 = tắt. Mức 0.01 là bình thường')+
+    xField('fs','oiTh','Bỏ lệnh nếu OI giảm hơn (%/24h)',0,50,1,FSF.oiTh,'0 = tắt')+xField('fs','minScore','Điểm tối thiểu',0,100,5,FSF.minScore,'0 = tắt')+'</div>';
+  var af=btAccount(xClone(trf),cfg),ar=btAccount(xClone(rm),cfg);
+  h+=btTableA('Trước và sau khi lọc',  'Nhóm',[{l:'Tất cả lệnh',a:a},{l:'Sau lọc (dùng cho phần Danh mục)',a:af},{l:'Các lệnh bị loại ('+rm.length+', tính riêng)',a:ar}],false);
+  if(rm.length)h+='<p class="hint2" style="margin:4px 0">Lý do bị loại: funding '+why.funding+', OI '+why.oi+', điểm thấp '+why.score+'. Nếu nhóm "bị loại" có R trung bình cao hơn nhóm còn lại thì bộ lọc đang loại nhầm.</p>';
+  var B=function(fn,order){var g={};tr.forEach(function(t){var k=fn(t);(g[k]=g[k]||[]).push(t)});return order.filter(function(k){return g[k]}).map(function(k){return grpRow(k,grpStat(g[k]))})};
+  h+=grpTable('Theo điểm setup (thang 100)','Nhóm',B(function(t){return t.sc>=80?'Điểm 80–100':t.sc>=60?'Điểm 60–79':t.sc>=40?'Điểm 40–59':'Điểm dưới 40'},['Điểm 80–100','Điểm 60–79','Điểm 40–59','Điểm dưới 40']));
+  h+=grpTable('Theo funding tại lúc có tín hiệu (so với phe của lệnh)','Nhóm',B(function(t){if(t.fund==null)return 'Không có dữ liệu';var c=t.fund*t.side;return c<=0?'Phe lệnh ít đông (funding ngược phe hoặc 0)':c<=0.03?'Bình thường (0 đến 0.03%)':'Phe lệnh đang đông (trên 0.03%)'},['Phe lệnh ít đông (funding ngược phe hoặc 0)','Bình thường (0 đến 0.03%)','Phe lệnh đang đông (trên 0.03%)','Không có dữ liệu']));
+  h+=grpTable('Theo open interest 24 giờ','Nhóm',B(function(t){if(t.oi24==null)return 'Không có dữ liệu';var pd=t.px24*t.side;return Math.abs(t.oi24)<2?'OI đi ngang (dưới 2%)':t.oi24>0?(pd>0?'OI tăng, giá thuận hướng':'OI tăng, giá ngược hướng'):'OI giảm từ 2% trở lên'},['OI tăng, giá thuận hướng','OI tăng, giá ngược hướng','OI đi ngang (dưới 2%)','OI giảm từ 2% trở lên','Không có dữ liệu']));
+  var nt=[];
+  nt.push(bt.fsOn?('Có dữ liệu funding cho '+haveF+'/'+tr.length+' lệnh và OI cho '+haveO+'/'+tr.length+' lệnh'+(haveO<tr.length?' (coin spot, coin mới, lệnh cũ hơn khoảng 30 ngày hoặc lỗi mạng thì không có; những lệnh đó không bị lọc và điểm được tính trên các thành phần còn lại)':'')+'.'):'Chưa lấy dữ liệu funding/OI (chọn "Lấy dữ liệu" ở ô Funding & OI rồi chạy lại). Điểm chỉ gồm chất lượng hộp, R:R, xu hướng và độ nén.');
+  nt.push('Điểm là heuristic tự đặt: chất lượng hộp (số lần chạm biên) 25, R:R tới TP1 20, thuận xu hướng EMA 10, độ nén của hộp 5, funding 20, OI 20. Bảng "Theo điểm" là cách kiểm chứng: nếu điểm cao không cho R trung bình cao hơn điểm thấp, hoặc mỗi nhóm chỉ vài chục lệnh, thì điểm chưa có giá trị và đừng dùng để lọc.');
+  nt.push('Funding là mức đã chốt gần nhất trước nến phá hộp (8 giờ một lần), OI lấy theo giờ và so với 24 giờ trước. Binance chỉ lưu lịch sử OI khoảng 30 ngày. Lọc áp dụng sau khi mô phỏng: lệnh bị loại coi như không vào, nhưng chưa tính việc coin đó có thể vào setup kế tiếp. Đừng chỉnh ngưỡng đến khi đẹp trên chính mẫu này (khớp quá mức).');
+  return {html:h+xNotes(nt)+'</details>',trf:trf};
+}
+/* ----- 3. danh mục ----- */
+function pfCorrBlock(co){
+  var h='<p class="hint2" style="margin:8px 0 4px"><b>Tương quan giữa các coin</b> (lợi suất, '+co.n+' coin): trung bình ρ = <b>'+co.avg.toFixed(2)+'</b>. '+
+    (co.n>1?'Nếu cùng chiều, '+co.n+' coin này chỉ tương đương khoảng <b>'+co.neff.toFixed(1)+'</b> cược độc lập.':'')+'</p>';
+  var hi=co.pairs.filter(function(x){return x.rho>=PFS.corrTh});
+  if(hi.length)h+='<p class="hint2" style="margin:4px 0">Cặp có ρ ≥ '+PFS.corrTh+' (số cặp: '+hi.length+'/'+co.pairs.length+'): '+hi.slice(0,10).map(function(x){return esc(x.a)+'–'+esc(x.b)+' '+x.rho.toFixed(2)}).join(', ')+'. Hai coin này cùng chiều gần như là một lệnh nhân đôi.</p>';
+  else if(co.pairs.length)h+='<p class="hint2" style="margin:4px 0">Không có cặp nào đạt ρ ≥ '+PFS.corrTh+'.</p>';
+  return h;
+}
+function btPfHtml(X,trf){
+  var cfg=X.cfg,ms=TFMS[X.tf],lab={};
+  trf.forEach(function(t){lab[t.coin]=1});
+  var key=bt.id+'|'+X.tf+'|'+Object.keys(lab).sort().join(',');
+  if(!bt.pf||bt.pf.key!==key){
+    var rets={};X.sets.forEach(function(S){if(lab[S.label])rets[S.label]=pfRet(S.d.filter(function(r){return r.t>=bt.from-86400000&&r.t<=bt.to}))});
+    bt.pf={key:key,co:pfCorr(rets,40)};
+  }
+  var co=bt.pf.co,mk=function(t){return {t:t.tIn,te:t.tOut+ms,side:t.side,coin:t.coin,r:t.r,ref:t}};
+  var all=trf.map(mk),base={bal0:cfg.bal0,riskPct:cfg.riskPct,riskUsd:cfg.riskUsd};
+  var U=pfSim(all,base),C=pfSim(all,Object.assign({},base,{maxRiskPct:PFS.maxRiskPct,maxPos:PFS.maxPos,maxSide:PFS.maxSide,corrTh:PFS.corrTh,corrMax:PFS.corrMax,corr:co.c}));
+  var AU=btAccount(xClone(trf),cfg),AC=btAccount(xClone(C.acc),cfg);
+  var row=function(l,p,q){return '<tr><td>'+l+'</td><td class="num">'+p+'</td><td class="num">'+q+'</td></tr>'},sk=C.skip;
+  var skt=C.skipped?C.skipped+' <small>(trần rủi ro '+sk.risk+', số lệnh '+sk.pos+', cùng chiều '+sk.side+', tương quan '+sk.corr+')</small>':'0';
+  var h='<details class="xsec" open><summary>Danh mục: nhiều lệnh chạy cùng lúc, trần rủi ro và tương quan</summary>'+pfForm('bt')+
+    '<div class="tblwrap"><table class="tbl"><thead><tr><th>Cùng '+trf.length+' lệnh trên, vốn '+usd(cfg.bal0)+'</th><th class="num">Không giới hạn</th><th class="num">Có trần rủi ro</th></tr></thead><tbody>'+
+    row('Số lệnh được vào',AU.trN,AC.trN)+row('Lệnh bị bỏ',0,skt)+
+    row('Tổng R',rtxt(AU.sumR),rtxt(AC.sumR))+
+    row('Balance cuối','<span class="'+rcls(AU.net)+'">'+usd(AU.bal)+' ('+pctS(AU.net)+')</span>','<span class="'+rcls(AC.net)+'">'+usd(AC.bal)+' ('+pctS(AC.net)+')</span>')+
+    row('Sụt vốn tối đa','-'+xPct(AU.mdd),'-'+xPct(AC.mdd))+
+    row('Ngày tệ nhất','<span class="'+rcls(U.worstDay)+'">'+xPct(U.worstDay)+'</span>','<span class="'+rcls(C.worstDay)+'">'+xPct(C.worstDay)+'</span>')+
+    row('Rủi ro mở cùng lúc, đỉnh',xPct(U.peakRisk),xPct(C.peakRisk))+
+    row('Số lệnh mở cùng lúc, đỉnh',U.peakPos,C.peakPos)+'</tbody></table></div>';
+  var nt=[];
+  if(PFS.maxRiskPct>0&&U.peakRisk>PFS.maxRiskPct/100)nt.push('Không giới hạn thì lúc đông nhất có '+U.peakPos+' lệnh mở cùng lúc, tổng rủi ro khoảng '+xPct(U.peakRisk)+' balance: nếu thị trường đảo chiều, các lệnh cùng chiều có thể thua gần như cùng lúc (khi hoảng loạn, tương quan giữa các coin thường tăng lên).');
+  if(C.skipped&&U.n)nt.push('Trần rủi ro đã loại '+C.skipped+'/'+U.n+' lệnh ('+Math.round(C.skipped/U.n*100)+'%). '+(AC.mdd<AU.mdd-1e-9?'Sụt vốn giảm từ -'+xPct(AU.mdd)+' xuống -'+xPct(AC.mdd):'Sụt vốn không giảm trong mẫu này (-'+xPct(AU.mdd)+' so với -'+xPct(AC.mdd)+')')+(AC.net<AU.net?', đổi lại lãi giảm '+((AU.net-AC.net)*100).toFixed(1)+' điểm phần trăm.':', và lãi không bị giảm.'));
+  if(trf.length<30)nt.push('Dưới 30 lệnh nên khác biệt giữa hai cột chủ yếu là ngẫu nhiên.');
+  nt.push('Mô phỏng: lệnh nào vào trước được xét trước, tổng rủi ro đang mở ước tính theo '+(cfg.riskUsd>0?usd(cfg.riskUsd)+' cố định':cfg.riskPct+'% balance')+' mỗi lệnh. Số liệu balance và sụt vốn của hai cột được tính lại bằng đúng cách tính tiền của backtest (có giới hạn đòn bẩy '+cfg.lev+'x), chưa tính ký quỹ và thanh lý. Tương quan tính trên lợi suất của khung '+TFN[X.tf]+' trong đúng khoảng backtest nên chỉ phản ánh giai đoạn này.');
+  return h+xNotes(nt)+pfCorrBlock(co)+'</details>';
+}
+$('#btout').addEventListener('change',function(e){if(xRead(e))setTimeout(btRender,0)});
+/* ----- phần quét coin: chấm điểm và rủi ro danh mục ----- */
+var LIVE_ITEMS=function(){return scanState.items.filter(function(x){return (x.status==='setup'||x.status==='wait')&&x.side&&x.setup})};
+async function scLive(){
+  var el=$('#scansc'),its=LIVE_ITEMS();
+  el.hidden=false;
+  if(scanState.busy){el.textContent='Đang quét, hãy đợi quét xong rồi bấm lại.';return}
+  if(!its.length){el.textContent='Không có setup hoặc lệnh chờ hồi test để chấm điểm.';return}
+  var my=++scLive.id;el.textContent='Đang lấy funding và open interest của '+its.length+' coin…';
+  var fm={},fok=false;
+  try{(await lpFetch(['https://fapi.binance.com/fapi/v1/premiumIndex'])).forEach(function(r){fm[r.symbol]=+r.lastFundingRate*100});fok=true}catch(e){}
+  var idx=0,noData=0;
+  async function w(){
+    while(idx<its.length&&my===scLive.id){
+      var x=its[idx++],f=null,o24=null,px24=null;
+      if(x.fut){
+        if(fok&&fm[x.sym]!==undefined)f=fm[x.sym];
+        try{
+          var oi=(await retry(function(){return lpFetch(['https://fapi.binance.com/futures/data/openInterestHist?symbol='+x.sym+'&period=1h&limit=30'])})).map(function(q){return {t:+q.timestamp,v:+q.sumOpenInterestValue}});
+          if(oi.length){var last=oi[oi.length-1];o24=fsFeat(f,last.v,fsAt(oi,last.t-86400000,2*3600000)).oi24}
+        }catch(e){}
+        try{var k=await retry(function(){return klines(x.sym,'1h',true,30)});if(k.length>25)px24=(k[k.length-1].c/k[k.length-25].c-1)*100}catch(e){}
+      }
+      if(f==null&&o24==null)noData++;
+      var sp=x.setup,sc=plScoreBox({touches:sp.box.tops+sp.box.bots,rr:sp.rr1,trendOk:sp.trend===x.side,hH:sp.box.H/sp.atr,side:x.side,fund:f,oi24:o24,px24:px24});
+      sc.fund=f;sc.oi24=o24;x.score=sc;
+    }
+  }
+  await Promise.all([w(),w(),w()]);
+  if(my!==scLive.id)return;
+  var order=its.slice().sort(function(a,b){return b.score.score-a.score.score});
+  el.innerHTML='Đã chấm điểm '+its.length+' setup (thang 100, điểm là heuristic, chỉ đáng tin sau khi xem bảng "Theo điểm" trong Backtest). Cao nhất: '+order.slice(0,5).map(function(x){return '<b>'+esc(x.label)+'</b> '+x.score.score}).join(', ')+'.'+(noData?' '+noData+' coin không có funding/OI (spot hoặc lỗi mạng), điểm tính trên phần còn lại.':'');
+  renderScan();
+}
+scLive.id=0;
+function livePct(){var c=btCfg();return c.riskUsd>0?c.riskUsd/c.bal0*100:(c.riskPct>0?c.riskPct:1)}
+async function pfLive(){
+  var el=$('#scanpf'),its=LIVE_ITEMS().sort(function(a,b){return (b.score?b.score.score:-1)-(a.score?a.score.score:-1)||RANK[a.status]-RANK[b.status]});
+  if(scanState.busy){el.innerHTML='<div class="pfbox"><p class="hint2">Đang quét, hãy đợi quét xong rồi bấm lại.</p></div>';return}
+  if(!its.length){el.innerHTML='<div class="pfbox"><p class="hint2">Hiện không có coin nào có setup hoặc chờ hồi test để tính rủi ro danh mục.</p></div>';return}
+  var my=++pfLive.id;
+  el.innerHTML='<div class="pfbox"><p class="hint2">Đang tải dữ liệu H1 của '+its.length+' coin để tính tương quan…</p></div>';
+  var rets={},idx=0,fail=[];
+  async function w(){while(idx<its.length&&my===pfLive.id){var x=its[idx++];try{rets[x.label]=pfRet(await retry(function(){return klines(x.sym,'1h',x.fut,300)}))}catch(e){fail.push(x.label)}}}
+  await Promise.all([w(),w(),w()]);
+  if(my!==pfLive.id)return;
+  pfLive.cache={its:its,rets:rets,fail:fail};
+  pfLiveRender();
+}
+pfLive.id=0;
+function pfLiveRender(){
+  var el=$('#scanpf'),C=pfLive.cache;if(!C)return;
+  var co=pfCorr(C.rets,40),acc=[],rej=[],rk=livePct();
+  C.its.forEach(function(x){
+    var orisk=0,same=0,cor=0,why=null;
+    acc.forEach(function(q){orisk+=rk;if(q.side===x.side){same++;var rho=co.c[x.label]&&co.c[x.label][q.label];if(rho!==undefined&&rho>=PFS.corrTh)cor++}});
+    if(PFS.maxPos&&acc.length>=PFS.maxPos)why='đã đủ '+PFS.maxPos+' lệnh';
+    else if(PFS.maxRiskPct&&orisk+rk>PFS.maxRiskPct+1e-9)why='vượt trần rủi ro '+PFS.maxRiskPct+'%';
+    else if(PFS.maxSide&&same>=PFS.maxSide)why='đã đủ '+PFS.maxSide+' lệnh '+(x.side>0?'LONG':'SHORT');
+    else if(PFS.corrMax&&cor>=PFS.corrMax)why='tương quan ≥ '+PFS.corrTh+' với '+PFS.corrMax+' lệnh cùng chiều đã chọn';
+    if(why)rej.push({x:x,why:why});else acc.push(x);
+  });
+  var nL=C.its.filter(function(x){return x.side>0}).length,nS=C.its.length-nL,tot=C.its.length*rk;
+  var nm=function(x){return '<b>'+esc(x.label)+'</b> '+(x.side>0?'LONG':'SHORT')};
+  var h='<div class="pfbox"><b>Rủi ro danh mục nếu vào hết các setup đang hiện</b>'+pfForm('lv')+
+    '<p class="hint2" style="margin:4px 0">'+C.its.length+' setup ('+nL+' LONG, '+nS+' SHORT). Rủi ro mỗi lệnh lấy từ form Backtest ('+rk.toFixed(2)+'% balance). Vào hết thì tổng rủi ro mở là <b>'+tot.toFixed(1)+'% balance</b>'+(PFS.maxRiskPct&&tot>PFS.maxRiskPct?', vượt trần '+PFS.maxRiskPct+'%':'')+'.</p>';
+  h+='<ul><li>Nên giữ theo quy tắc (ưu tiên điểm setup cao nếu đã bấm "Chấm điểm setup", nếu chưa thì theo thứ tự danh sách): '+(acc.length?acc.map(nm).join(', ')+' &rarr; rủi ro '+(acc.length*rk).toFixed(1)+'%':'không có')+'</li>';
+  if(rej.length)h+='<li>Nên bỏ qua hoặc giảm rủi ro: '+rej.map(function(q){return nm(q.x)+' ('+esc(q.why)+')'}).join('; ')+'</li>';
+  h+='</ul>'+pfCorrBlock(co);
+  if(C.fail.length)h+='<p class="hint2">Không tải được dữ liệu: '+esc(C.fail.join(', '))+' (coi như không tương quan).</p>';
+  h+='<p class="hint2" style="margin:6px 0">Tương quan tính trên 300 nến H1 gần nhất, chỉ mang tính tham khảo: khi thị trường biến động mạnh các coin thường chạy cùng nhau hơn. Chưa tính các lệnh bạn đang mở sẵn. Không phải khuyến nghị đầu tư. <button type="button" class="btn" id="scanpfclose">Đóng</button></p></div>';
+  el.innerHTML=h;
+}
+$('#scanpf').addEventListener('change',function(e){if(xRead(e))setTimeout(pfLiveRender,0)});
+$('#scanpf').addEventListener('click',function(e){if(e.target.id==='scanpfclose'){pfLive.id++;pfLive.cache=null;$('#scanpf').innerHTML=''}});
+$('#scanpfbtn').addEventListener('click',pfLive);
+$('#scanscbtn').addEventListener('click',scLive);
 var OUTN={tp:'Chạm RR',sl:'Cắt lỗ',trail:'Trail SL',time:'Hết giờ'};
 function btRender(){
   var X=bt.X,el=$('#btout');
@@ -1856,6 +2339,7 @@ function btRender(){
     var names=X.sets.map(function(s){return s.label}).sort(function(p,q){return grpStat(byCoin[q]||[]).sumR-grpStat(byCoin[p]||[]).sumR});
     if(names.length)h+=grpTable('Từng coin (sắp theo tổng R, bấm một dòng để xem trên biểu đồ)','Coin',names.map(function(k){return grpRow(k,grpStat(byCoin[k]||[]),true)}));
   }
+  if(a.trN>=2){h+=btRelHtml(X,a,v);var FL=btFsHtml(X,a,v);h+=FL.html;if(FL.trf.length>=2)h+=btPfHtml(X,FL.trf)}
   var recent=v.trades.slice().sort(function(p,q){return q.tIn-p.tIn}).slice(0,150);
   if(recent.length){
     h+='<details style="margin-top:10px"><summary>Danh sách lệnh ('+recent.length+' lệnh gần nhất)</summary><div class="tblwrap" style="margin-top:6px"><table class="tbl"><thead><tr><th>Nến phá hộp</th><th>Coin</th><th>Hướng</th><th class="num">Hộp</th><th class="num">Vào</th><th class="num">Cắt lỗ</th><th class="num">Chốt lời</th><th class="num">Ra</th><th>Kết quả</th><th class="num">R</th><th class="num">Lãi/lỗ</th></tr></thead><tbody>'+recent.map(function(t){
@@ -1900,12 +2384,12 @@ $('#btform').addEventListener('change',function(e){
   var id=e.target.id;
   if(id==='bt-tr')setBtTrail();
   if(bt.busy)return;
-  if(id==='bt-from'||id==='bt-to'||id==='bt-src'){if(bt.X){bt.stale=true;btRender()}return}
+  if(id==='bt-from'||id==='bt-to'||id==='bt-src'||id==='bt-fs'){if(bt.X){bt.stale=true;btRender()}return}
   if(Object.keys(bt.data).length)btCompute();
 });
 $('#btform').addEventListener('input',function(e){
   if(bt.busy||!Object.keys(bt.data).length)return;
-  var id=e.target.id;if(id==='bt-from'||id==='bt-to'||id==='bt-src'||e.target.tagName==='SELECT')return;
+  var id=e.target.id;if(id==='bt-from'||id==='bt-to'||id==='bt-src'||id==='bt-fs'||e.target.tagName==='SELECT')return;
   clearTimeout(bt.tm);bt.tm=setTimeout(btCompute,350);
 });
 window.addEventListener('resize',function(){if(bt.X)btRender()});
