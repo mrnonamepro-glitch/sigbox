@@ -287,6 +287,8 @@ label.btn{display:inline-flex;align-items:center;position:relative}
     </div>
     <div class="wgrid">
       <label><input type="checkbox" id="w-ntfy"> <b>Gửi về điện thoại (ntfy)</b></label>
+      <label><input type="checkbox" id="w-pscan" checked> Gửi cảnh báo SCAN (setup từ danh sách quét)</label>
+      <label><input type="checkbox" id="w-pbot" checked> Gửi cảnh báo BOT (bot vào/đóng lệnh)</label>
       <label>Mã kênh <input type="text" id="w-topic" spellcheck="false" autocapitalize="none" placeholder="vd: boxlab-k3x9a2m7q1"></label>
       <label>Cách gửi <select id="w-mode"><option value="each">Mỗi coin một tin</option><option value="digest">Gộp tất cả vào một tin</option></select></label>
       <label><input type="checkbox" id="w-repeat"> Mỗi lần quét tự động đều báo lại toàn bộ coin đang có setup</label>
@@ -377,6 +379,7 @@ label.btn{display:inline-flex;align-items:center;position:relative}
   <label class="botswitch"><input type="checkbox" id="botOn"> <b>Bật bot</b> <span id="botstate" class="hint2"></span></label>
   <div id="botstat"></div>
   <details open><summary>Danh sách coin và mục tiêu</summary><div id="botform1"></div></details>
+  <p class="hint2" id="bot-pushnote"></p>
   <details><summary>Quản lý rủi ro và bộ lọc</summary><div id="botform2"></div></details>
   <h3>Lệnh đang mở</h3><div id="botpos"></div>
   <h3>Lệnh chờ kích hoạt</h3><div id="botpend"></div>
@@ -1720,7 +1723,7 @@ $('#scanclose').addEventListener('click',function(){scanState.id++;scanState.bus
 
 /* ---------- theo dõi và cảnh báo setup tự động ---------- */
 var WSK='boxlab.wset.v1',WPK='boxlab.wprev.v1';
-var WS={on:false,mins:5,ready:true,wait:true,near:false,sound:true,wake:false,ntfy:false,topic:'',mode:'each',repeat:false};
+var WS={on:false,mins:5,ready:true,wait:true,near:false,sound:true,wake:false,ntfy:false,pscan:true,pbot:true,topic:'',mode:'each',repeat:false};
 var wprev={},wtimer=null,wcount=null,wnext=0,wlock=null,wunseen=0,wbase=null,wac=null;
 try{var _w=JSON.parse(localStorage.getItem(WSK)||'null');if(_w)Object.keys(WS).forEach(function(k){if(_w[k]!==undefined)WS[k]=_w[k]})}catch(e){}
 try{wprev=JSON.parse(localStorage.getItem(WPK)||'{}')||{}}catch(e){wprev={}}
@@ -1728,11 +1731,11 @@ function saveW(){try{localStorage.setItem(WSK,JSON.stringify(WS))}catch(e){}}
 function savePrev(){try{localStorage.setItem(WPK,JSON.stringify(wprev))}catch(e){}}
 function wUI(){
   $('#w-on').checked=WS.on;$('#w-mins').value=String(WS.mins);$('#w-ready').checked=WS.ready;$('#w-wait').checked=WS.wait;$('#w-near').checked=WS.near;
-  $('#w-sound').checked=WS.sound;$('#w-wake').checked=WS.wake;$('#w-ntfy').checked=WS.ntfy;$('#w-topic').value=WS.topic;$('#w-mode').value=WS.mode;$('#w-repeat').checked=WS.repeat;
+  $('#w-sound').checked=WS.sound;$('#w-wake').checked=WS.wake;$('#w-ntfy').checked=WS.ntfy;$('#w-pscan').checked=WS.pscan;$('#w-pbot').checked=WS.pbot;$('#w-topic').value=WS.topic;$('#w-mode').value=WS.mode;$('#w-repeat').checked=WS.repeat;
 }
 function wRead(){
   WS.on=$('#w-on').checked;WS.mins=+$('#w-mins').value||5;WS.ready=$('#w-ready').checked;WS.wait=$('#w-wait').checked;WS.near=$('#w-near').checked;
-  WS.sound=$('#w-sound').checked;WS.wake=$('#w-wake').checked;WS.ntfy=$('#w-ntfy').checked;WS.mode=$('#w-mode').value||'each';WS.repeat=$('#w-repeat').checked;WS.topic=$('#w-topic').value.trim().replace(/[^A-Za-z0-9_\-]/g,'');
+  WS.sound=$('#w-sound').checked;WS.wake=$('#w-wake').checked;WS.ntfy=$('#w-ntfy').checked;WS.pscan=$('#w-pscan').checked;WS.pbot=$('#w-pbot').checked;WS.mode=$('#w-mode').value||'each';WS.repeat=$('#w-repeat').checked;WS.topic=$('#w-topic').value.trim().replace(/[^A-Za-z0-9_\-]/g,'');
   saveW();
 }
 function watchStat(){
@@ -1783,7 +1786,7 @@ function wStart(){
     wTick();
   }else wSchedule();
 }
-['w-on','w-mins','w-ready','w-wait','w-near','w-sound','w-wake','w-ntfy','w-mode','w-repeat'].forEach(function(id){$('#'+id).addEventListener('change',function(){
+['w-on','w-mins','w-ready','w-wait','w-near','w-sound','w-wake','w-ntfy','w-pscan','w-pbot','w-mode','w-repeat'].forEach(function(id){$('#'+id).addEventListener('change',function(){
   var was=WS.on;wRead();wLock();
   if(id==='w-on'){
     if(WS.on&&!was){
@@ -1843,7 +1846,7 @@ function wLine(r){
 }
 function wSleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 async function wPush(list,newKeys){
-  if(!WS.ntfy||!WS.topic||!list.length)return;
+  if(!WS.ntfy||!WS.pscan||!WS.topic||!list.length)return;
   if(WS.mode==='digest'){
     var lines=list.slice(0,20).map(function(r){return (newKeys[r.label]?'[MỚI] ':'')+wLine(r)});
     if(list.length>20)lines.push('… và '+(list.length-20)+' coin khác');
@@ -2671,6 +2674,15 @@ var BOT={on:false,busy:false,cfg:Object.assign({},BOT_DEF),S:null,corr:null,rets
 try{var _b=JSON.parse(localStorage.getItem(BOTK)||'null');if(_b){BOT.on=!!_b.on;if(_b.cfg)Object.keys(BOT_DEF).forEach(function(k){if(_b.cfg[k]!==undefined&&typeof _b.cfg[k]===typeof BOT_DEF[k])BOT.cfg[k]=_b.cfg[k]});BOT.S=_b.S||null}}catch(e){}
 function botSave(){try{localStorage.setItem(BOTK,JSON.stringify({on:BOT.on,cfg:BOT.cfg,S:BOT.S}))}catch(e){}}
 function botT(t){var d=new Date(t);return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())}
+var botPQ=Promise.resolve();
+/* Gửi ntfy khi bot vào/đóng lệnh. Cần tick ntfy + "Gửi cảnh báo BOT" + có mã kênh. Bỏ qua sự kiện cũ (bù nến khi mở lại trang). */
+function botPush(title,body,t,prio){
+  try{
+    if(!WS.ntfy||!WS.pbot||!WS.topic)return;
+    if(Date.now()-(t||Date.now())>30*60000)return;
+    botPQ=botPQ.then(function(){return ntfySend(title,body,prio||'high')}).then(function(){return wSleep(700)}).catch(function(){});
+  }catch(e){}
+}
 function botLog(k,m,t){var S=BOT.S;if(!S)return;S.log.unshift({t:t||Date.now(),k:k,m:m});if(S.log.length>400)S.log.length=400}
 function botCoins(){
   var seen={},out=[];
@@ -2704,6 +2716,7 @@ function botClose(p,e){
   if(e.reason==='sl'&&p.mfe>=0.8)notes.push('lệnh từng chạy +'+p.mfe.toFixed(1)+'R rồi mới quay lại cắt lỗ');
   if(e.reason==='sl'&&(e.t+900000-p.t0)<=1800000)notes.push('bị cắt lỗ trong vòng 2 nến M15 đầu tiên');
   botLog('close','Đóng '+(p.side>0?'LONG':'SHORT')+' '+p.label+' ở '+fmt(e.px)+': '+why+', '+rtxt(R)+' ('+usd(pnl,true)+'), giữ '+hrs+' giờ; '+notes.join('; ')+'. Balance '+usd(S.bal)+'.',e.t);
+  botPush('Bot Box Lab: đóng '+(p.side>0?'LONG ':'SHORT ')+p.label+' '+rtxt(R),why+' ở '+fmt(e.px)+' · '+usd(pnl,true)+'\nBalance '+usd(S.bal)+'\n(Demo, không phải lệnh thật)',e.t,pnl>=0?'default':'high');
 }
 /* Kiểm tra các giới hạn rồi mở vị thế. Trả về true nếu đã mở. */
 function botOpen(p,bar,entryRaw,now){
@@ -2731,6 +2744,7 @@ function botOpen(p,bar,entryRaw,now){
   S.pos.push(pos);
   var cut={budget:'bị cắt còn '+usd(z.risk)+' vì ngân sách lỗ trong ngày chỉ còn '+usd(bg.remain),open:'bị cắt còn '+usd(z.risk)+' vì trần tổng rủi ro mở',lev:'bị giới hạn bởi đòn bẩy tối đa '+c.maxLev+'x'}[z.cut];
   botLog('open','Vào '+lab+' ở '+fmt(entry)+(Math.abs(entry-entryRaw)>0?' (đã gồm trượt giá '+c.slip+'%)':'')+': '+p.how+'. Điểm '+p.score+'/100 ('+p.why+'). Cắt lỗ '+fmt(p.sl)+', TP1 '+fmt(p.tp)+', R:R '+rr.toFixed(2)+'. Rủi ro '+usd(z.risk)+' = '+c.riskPct+'% × hệ số điểm '+z.mult+' × bối cảnh '+p.ctxMult+(S.tgtHalf?' × 0.5 (đã đạt mục tiêu)':'')+(cut?', '+cut:'')+'. Khối lượng '+z.qty.toPrecision(4)+', ngân sách ngày còn '+usd(Math.max(0,bg.remain-z.risk))+'.',bar.t);
+  botPush('Bot Box Lab: vào '+lab,'Giá vào '+fmt(entry)+' · cắt lỗ '+fmt(p.sl)+' · TP1 '+fmt(p.tp)+'\nR:R '+rr.toFixed(2)+' · điểm '+p.score+'/100 · rủi ro '+usd(z.risk)+'\n(Demo, không phải lệnh thật)',bar.t,'high');
   return true;
 }
 async function botFetchM15(label,sym,fut,minT,now){
@@ -2879,6 +2893,7 @@ function botBuildForm(){
 function botCoinStat(){var n=botCoins().length,r=parseCoinText(BOT.cfg.coins);$('#bot-coinstat').textContent=n+' coin hợp lệ'+(r.bad?', '+r.bad+' mã sai':'')+(r.tokens.length>40?' (chỉ dùng 40 mã đầu)':'')}
 function botRender(){
   var S=BOT.S,fab=$('#botfab'),lab=$('#botlab');
+  var pn=$('#bot-pushnote');if(pn)pn.textContent=(WS.ntfy&&WS.pbot&&WS.topic)?'Thông báo điện thoại: đang bật (mục Cảnh báo setup tự động, ô "Gửi cảnh báo BOT").':'Thông báo điện thoại: đang tắt. Để bật, vào mục Cảnh báo setup tự động, tick "Gửi về điện thoại (ntfy)" và "Gửi cảnh báo BOT", rồi nhập mã kênh.';
   $('#botOn').checked=BOT.on;
   var st=!S?'Chưa chạy':BOT.on?(S.end?'Đang thu xếp lệnh cuối':'Đang chạy'):S.end?'Đã kết thúc':'Tạm dừng';
   fab.className=(BOT.on&&S&&!S.end?'run':S&&S.end?'end':'off');
